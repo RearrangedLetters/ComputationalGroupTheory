@@ -1,0 +1,5 @@
+name = "ComputationalGroupTheory"
+uuid = "205954bd-1624-4fe0-9b60-d02b4b183d95"
+
+[deps]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
