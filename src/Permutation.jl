@@ -283,3 +283,16 @@ macro perm_str(s::String)
     end
     return permutation
 end
+
+function normalClosure(S::AbstractVector{<:GroupElement}, U::AbstractVector{<:GroupElement})
+    N = copy(U)
+    for n in N
+        for s in S
+            γ = inv(s) * n * s
+            if γ ∉ N  # todo: it should be γ ∉ ⟨N⟩
+                push!(N, γ)
+            end
+        end 
+    end
+    return N
+end
