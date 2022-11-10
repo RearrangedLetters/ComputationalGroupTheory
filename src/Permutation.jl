@@ -327,5 +327,22 @@ function pseudorandom(X::AbstractVector{<:GroupElement}, h::GroupElement)
         end
         g = h * X[i]
     end
-    return g, X ∪ [g]
+    return X ∪ [g], g
+end
+
+@inline function pad(S::AbstractVector{<:GroupElement}, length::Integer)
+    Δ = length - length(S)
+    if Δ > 0
+        return append!(S, fill(Permutation([1]), Δ))
+    else
+        return S
+end
+
+function pseudorandomList(S::AbstractVector{<:GroupElement}, n::Integer=50)
+    X = pad(S, 11)
+    h = Permutation([1])
+    for _ in 1:n
+        X, h = pseudorandom(X, h)
+    end
+    return X
 end
