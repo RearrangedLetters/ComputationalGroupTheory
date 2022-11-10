@@ -296,3 +296,36 @@ function normalClosure(S::AbstractVector{<:GroupElement}, U::AbstractVector{<:Gr
     end
     return N
 end
+
+function randomlyPickTwo(n::Integer)
+    @assert n ≥ 2
+    i = rand(1:n)
+    j = 0
+    while true
+        j = rand(1:n)
+        j == i || break
+    end
+    return i, j
+end
+
+function pseudorandom(X::AbstractVector{<:GroupElement}, h::GroupElement)
+    i, j = randomPick(2, X)
+    exponent = random([1, -1])
+    side = random([-1, 1])
+    if side == -1
+        if exponent == -1
+            X[i] = inv(X[j]) * X[i]
+        else
+            X[i] = X[j] * X[i]
+        end
+        g = X[i] * h
+    else
+        if exponent == -1
+            X[i] = X[i] * inv(X[j])
+        else
+            X[i] = X[i] * X[j]
+        end
+        g = h * X[i]
+    end
+    return g, X ∪ [g]
+end
