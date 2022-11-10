@@ -1,6 +1,6 @@
 module ComputationalGroupTheory
 
-export Permutation, orbit_vanilla
+export Permutation, orbit
 include("Permutation.jl")
 
 end
