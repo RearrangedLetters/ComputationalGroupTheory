@@ -18,8 +18,22 @@ Chapter 01 & 02 - Orbits and Stabilizers
     • Pseudorandom Elements aka Product Replacement (I)
 
 Chapter 03 - Stabilizer Chains
-    • 
+    • Sift - write element as product of coset representatives (I)
+    • Membership Test (A): We have sift(g) == e iff g ∈ G
+    • Schreier Sims (I, O)
+    • Order (A)
+    • Derived Series (A)
+    • Lower Central Series (A)
+    • Elements in same coset (A)
+    • Determine permutation action on the coset of a subgroup (A)
+    • Pointwise Stabilizer (A)
+    • Enumerate g (A)
 
-Chapter 04 - 
+Chapter 04 - Backtracking
+    • Plain Backtrack (N, O)
+    • Setwise Stabilizer (N)
+    • Find conjugating element (N)
+    • Centralizer (N)
+    • Normalizer (N)
 
 """

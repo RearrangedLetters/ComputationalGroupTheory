@@ -332,11 +332,7 @@ end
 
 @inline function pad(S::AbstractVector{<:GroupElement}, length::Integer)
     Δ = length - length(S)
-    if Δ > 0
-        return append!(S, fill(Permutation([1]), Δ))
-    else
-        return S
-    end
+    return Δ > 0 ? append!(S, fill(Permutation([1]), Δ)) : S
 end
 
 function pseudorandomList(S::AbstractVector{<:GroupElement}, n::Integer=50)
