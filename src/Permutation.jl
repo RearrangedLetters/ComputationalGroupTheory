@@ -149,7 +149,7 @@ function orbit(S::AbstractVector{<:GroupElement}, Ω, action=^, makeSymmetric=tr
     In:  • G = ⟨S⟩ acts on Ω by the given action
          • A set Ω
     Out: • The orbit of Ω under G, i.e. Ωᴳ
-         • The transversal  # todo: what kind of transversal?
+         • The transversal  # todo: what kind of transversal?  # todo: this is not correct
     Remark: If the group is infinite, the resulting orbit is only correct if S is symmetric
     =#
     @assert !isempty(S)
@@ -289,7 +289,7 @@ function normalClosure(S::AbstractVector{<:GroupElement}, U::AbstractVector{<:Gr
     for n in N
         for s in S
             γ = inv(s) * n * s
-            if γ ∉ N  # todo: it should be γ ∉ ⟨N⟩
+            if γ ∉ N  # todo: it should be γ ∉ ⟨N⟩, this can be done with a sift
                 push!(N, γ)
             end
         end 
@@ -336,6 +336,7 @@ end
         return append!(S, fill(Permutation([1]), Δ))
     else
         return S
+    end
 end
 
 function pseudorandomList(S::AbstractVector{<:GroupElement}, n::Integer=50)
@@ -364,7 +365,7 @@ mutable struct PointStabilizer{P<:AbstractPermutation}
     Base.isempty(pointStabilizer::PointStabilizer) = isempty(generators(pointStabilizer))  # or: point(pointStabilizer) == 0
 end
 
-function schreier_sims(S::AbstractVector{<:AbstractPermutation})
+function schreierSims(S::AbstractVector{<:AbstractPermutation})
     @assert !isempty(S)
     pointStabilizer = PointStabilizer{eltype(S)}()
     for s in S
@@ -402,15 +403,39 @@ function sift(pointStabilizer::PointStabilizer, g::AbstractPermutation)
             return sift(stabilizer(pointStabilizer), g)
         else
             return g
+        end
     end
+end
+
+function firstMoved(g::AbstractPermutation)
+    #=
+    Find first x such that xᵍ ≂̸ x
+    =#
+    for x in 1:(degree(g) + 1)
+        if x^g ≠ x
+            return x
+        end
+    end
+end
+
+struct Transversal
+    x::Integer
+    T::AbstractVector{Integer}
+
+    function Transversal(x::Integer, S::AbstractVector{<:GroupElement})
+        _, aTransversal = transversal(S, [x])
+        new(x, aTransversal)
+    end
+
+    point(transversal::Transversal) = transversal.x
+    Base.getindex(transversal::Transversal, i) = transversal.T[i]
+    Base.length(transversal::Transversal) = length(transversal.T)
 end
 
 function extendChain!(pointStabilizer::PointStabilizer{P}, g::AbstractPermutation) where P
     @assert !isone(g)
-
     push!(pointStabilizer.S, g)
-    x = firstMoved(g)  # find first x such that x^g ≂̸ x
-    pointStabilizer.T = Transversal(x, generators(pointStabilizer))
+    pointStabilizer.T = Transversal(firstMoved(g), generators(pointStabilizer))
     pointStabilizer.stabilizer = PointStabilizer{P}()
 
     k = length(pointStabilizer.T)
