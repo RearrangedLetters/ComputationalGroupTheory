@@ -346,3 +346,101 @@ function pseudorandomList(S::AbstractVector{<:GroupElement}, n::Integer=50)
     end
     return X
 end
+
+mutable struct PointStabilizer{P<:AbstractPermutation}
+    S::AbstractVector{P}
+    x::Integer
+    T#::Transversal
+    stabilizer::PointStabilizer{P}
+
+    PointStabilizer{P}() where P = new{P}(Vector{P}())  # incomplete initialization
+
+    generators(pointStabilizer::PointStabilizer) = pointStabilizer.S
+    # point(pointStabilizer::PointStabilizer) = pointStabilizer.x
+    point(pointStabilizer::PointStabilizer) = first(transversal(pointStabilizer))
+    transversal(pointStabilizer::PointStabilizer) = pointStabilizer.transversal
+    stabilizer(pointStabilizer::PointStabilizer) = pointStabilizer.stabilizer
+
+    Base.isempty(pointStabilizer::PointStabilizer) = isempty(generators(pointStabilizer))  # or: point(pointStabilizer) == 0
+end
+
+function schreier_sims(S::AbstractVector{<:AbstractPermutation})
+    @assert !isempty(S)
+    pointStabilizer = PointStabilizer{eltype(S)}()
+    for s in S
+        push!(pointStabilizer, s)
+    end
+    return pointStabilizer
+end
+
+function push!(pointStabilizer::PointStabilizer, g::AbstractPermutation)
+    g = sift(pointStabilizer, g)
+    if isone(g)
+        return pointStabilizer
+    end
+    if isempty(pointStabilizer)
+        extendChain!(pointStabilizer, g)
+    else
+        extendGenerators!(pointStabilizer, g)
+    end
+
+    return pointStabilizer
+end
+
+function sift(pointStabilizer::PointStabilizer, g::AbstractPermutation)
+    # returns 1 iff g is in the point stabilizer
+    if isempty(pointStabilizer) || isone(g)
+        return g
+    else
+        x = point(pointStabilizer)
+        δ = x^g
+        T = transversal(pointStabilizer)
+        if δ in T
+            r = T[δ]
+            g = g * inv(r)  # point in the stabilizer of x
+            @assert x^g == x
+            return sift(stabilizer(pointStabilizer), g)
+        else
+            return g
+    end
+end
+
+function extendChain!(pointStabilizer::PointStabilizer{P}, g::AbstractPermutation) where P
+    @assert !isone(g)
+
+    push!(pointStabilizer.S, g)
+    x = firstMoved(g)  # find first x such that x^g ≂̸ x
+    pointStabilizer.T = Transversal(x, generators(pointStabilizer))
+    pointStabilizer.stabilizer = PointStabilizer{P}()
+
+    k = length(pointStabilizer.T)
+    if k < order(g)
+        extendChain!(stabilizer(pointStabilizer), g^k)
+    end
+
+    return pointStabilizer
+end
+
+function extendGenerators(pointStabilizer::PointStabilizer, g::AbstractPermutation)
+    @assert !isone(g)
+    # simple version
+    push!(pointStabilizer.S, g)
+    pointStabilizer.T = Transversal(point(pointStabilizer), generators(pointStabilizer))
+    T = transversal(pointStabilizer)
+    for s in generators(pointStabilizer)
+        for δ in transversal(pointStabilizer)  # iteration over points in the orbit
+            r = T[δ]
+            schreier_generator = r * s * inv(T[δ^s])
+            if !isone(schreier_generator)
+                push!(stabilizer(pointStabilizer), schreier_generator)
+            end
+        end
+    end
+    return pointStabilizer
+end
+
+struct StabilizerChain
+    S::AbstractVector{AbstractVector{<:GroupElement}}
+    β::AbstractVector{Integer}
+    T::AbstractVector
+end
