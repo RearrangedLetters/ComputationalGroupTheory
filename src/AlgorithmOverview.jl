@@ -1,4 +1,5 @@
 """ Overview over the implemented algorithms and open things.
+
 Symbols:
     • (I) : implemented
     • (P) : partially implemented

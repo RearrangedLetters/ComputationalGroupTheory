@@ -403,16 +403,7 @@ function sift(pointStabilizer::PointStabilizer, g::AbstractPermutation)
     end
 end
 
-function firstMoved(g::AbstractPermutation)
-    #=
-    Find first x such that xᵍ ≂̸ x
-    =#
-    for x in 1:(degree(g) + 1)
-        if x^g ≠ x
-            return x
-        end
-    end
-end
+@inline firstMoved(g::AbstractPermutation) = findfirst(x -> x^g ≠ x, 1:(degree(g) + 1))
 
 struct Transversal
     x::Integer
