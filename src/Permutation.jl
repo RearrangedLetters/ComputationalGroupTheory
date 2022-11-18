@@ -230,7 +230,7 @@ function transversal_factored(S::AbstractVector{<:GroupElement}, Ω, action=^, m
     return Ωᴳ, T
 end
 
-function schreier(S::AbstractVector{<:GroupElement}, Ω, action=^, makeSymmetric=true)
+function schreier(S::AbstractVector{<:GroupElement}, Ω, action=^, makeSymmetric=true)  # todo: rename
     #=
     In:  • G = ⟨S⟩ acts on Ω by the given action
          • A set Ω
@@ -361,6 +361,30 @@ mutable struct PointStabilizer{P<:AbstractPermutation}
     Base.isempty(pointStabilizer::PointStabilizer) = isempty(generators(pointStabilizer))  # or: point(pointStabilizer) == 0
 end
 
+struct Transversal
+    x::Integer
+    T::AbstractVector{Integer}
+
+    function Transversal(x::Integer, S::AbstractVector{<:GroupElement})
+        _, aTransversal = transversal(S, [x])
+        new(x, aTransversal)
+    end
+
+    point(transversal::Transversal) = transversal.x
+    Base.getindex(transversal::Transversal, i) = transversal.T[i]
+    Base.length(transversal::Transversal) = length(transversal.T)
+end
+
+function stabilizerChain(S::AbstractVector{<:AbstractPermutation})
+    𝒞 = PointStabilizer{eltype(S)}()
+    for s ∈ S
+        _, r = sift(𝒞, s)
+        if r ≠ one(first(S))
+            push!(𝒞, r)
+        end
+    end
+end
+
 function schreierSims(S::AbstractVector{<:AbstractPermutation})
     @assert !isempty(S)
     pointStabilizer = PointStabilizer{eltype(S)}()
@@ -384,7 +408,39 @@ function push!(pointStabilizer::PointStabilizer, g::AbstractPermutation)
     return pointStabilizer
 end
 
-function sift(pointStabilizer::PointStabilizer, g::AbstractPermutation)
+struct StabilizerChain
+    S::AbstractVector{AbstractVector{<:GroupElement}}
+    β::AbstractVector{Integer}
+    T::Transversal
+end
+
+function push!(stabilizerChain::StabilizerChain, g::AbstractPermutation, d::Integer)
+    for i in 1:(d - 1)
+        @assert stabilizerChain.β[i]^g == stabilizerChain.β[i]
+    end
+
+    if d > length(stabilizerChain)
+        β = firstMoved(g)
+        S = [g]
+        T = Transversal(β, S)
+        extendBase(stabilizerChain, β)
+        extendTransversal(stabilizerChain, T)
+        k = length(T)
+        if k < order(g)
+            push!(stabilizerChain, g^k, d + 1)  # todo: g^k is not "correct"
+        end
+    else
+        push!(stabilizerChain.S[d], g)
+        for s in schreier(stabilizerChain.β[d], stabilizerChain.S[d])  # todo: correct call of schreier?
+            _, r = sift(stabilizerChain, s)
+            if r ≠ one(first(S))
+                push!(stabilizerChain, s, d + 1)
+            end
+        end
+    end
+end
+
+function sift(pointStabilizer::PointStabilizer, g::AbstractPermutation)  # todo: should return more
     # returns 1 iff g is in the point stabilizer
     if isempty(pointStabilizer) || isone(g)
         return g
@@ -404,20 +460,6 @@ function sift(pointStabilizer::PointStabilizer, g::AbstractPermutation)
 end
 
 @inline firstMoved(g::AbstractPermutation) = findfirst(x -> x^g ≠ x, 1:(degree(g) + 1))
-
-struct Transversal
-    x::Integer
-    T::AbstractVector{Integer}
-
-    function Transversal(x::Integer, S::AbstractVector{<:GroupElement})
-        _, aTransversal = transversal(S, [x])
-        new(x, aTransversal)
-    end
-
-    point(transversal::Transversal) = transversal.x
-    Base.getindex(transversal::Transversal, i) = transversal.T[i]
-    Base.length(transversal::Transversal) = length(transversal.T)
-end
 
 function extendChain!(pointStabilizer::PointStabilizer{P}, g::AbstractPermutation) where P
     @assert !isone(g)
@@ -449,10 +491,4 @@ function extendGenerators(pointStabilizer::PointStabilizer, g::AbstractPermutati
         end
     end
     return pointStabilizer
-end
-
-struct StabilizerChain
-    S::AbstractVector{AbstractVector{<:GroupElement}}
-    β::AbstractVector{Integer}
-    T::AbstractVector
 end

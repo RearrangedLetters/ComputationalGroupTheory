@@ -29,6 +29,7 @@ Chapter 03 - Stabilizer Chains
     • Determine permutation action on the coset of a subgroup (A)
     • Pointwise Stabilizer (A)
     • Enumerate g (A)
+    • Homomorphisms
 
 Chapter 04 - Backtracking
     • Plain Backtrack (N, O)

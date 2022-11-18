@@ -1,4 +1,4 @@
 using ComputationalGroupTheory
 using Test
 
-include("PermutationGroupsTest.jl")
+include("SchreierSimsTest.jl")
