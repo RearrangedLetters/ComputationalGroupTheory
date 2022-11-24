@@ -1,4 +1,5 @@
 using ComputationalGroupTheory
 using Test
 
-include("SchreierSimsTest.jl")
+include("PermutationTest.jl")
+include("OrbitTransversalSchreierTest.jl")

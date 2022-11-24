@@ -1,6 +1,9 @@
 module ComputationalGroupTheory
 
-export Permutation, orbit
+export Permutation, degree, orbit
+include("AbstractPermutation.jl")
+include("CyclePermutation.jl")
 include("Permutation.jl")
+include("OrbitTransversalSchreier.jl")
 
 end
