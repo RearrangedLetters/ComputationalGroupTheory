@@ -12,3 +12,15 @@ using ComputationalGroupTheory
 	@test length(Δ) == 24
     @test orbit(σ, 1) == [1, 2, 3, 4]
 end
+
+@testset "Orbit_2" begin
+    σ = perm"(1, 2, 3, 4)"
+    @test orbit(σ, 1) == [1, 2, 3, 4]
+    τ = perm"(1, 2)"
+    @test orbit(τ, 1) == [1, 2]
+	S = [σ, τ]
+	e = one(σ)
+	Δ = orbit(S, e, *)
+	@test length(Δ) == 24
+    @test orbit(σ, 1) == [1, 2, 3, 4]
+end

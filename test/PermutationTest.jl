@@ -8,6 +8,10 @@ using Test
 	@test inv(σ) * σ == one(σ)
 	@test τ * inv(τ) == one(τ)
 	@test inv(σ * τ) == inv(τ) * inv(σ)
-    σ = Permutation([2, 1, 3])
-    @test σ * τ == Permutation([3, 1, 2])
+    @test Permutation([2, 1, 3]) * τ == Permutation([3, 1, 2])
+end
+
+@testset "Permutation_2" begin
+    σ = perm"(1, 2, 3, 4)(3, 4)"
+    @test σ == Permutation([2, 3, 1, 4])
 end

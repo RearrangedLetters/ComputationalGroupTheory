@@ -1,3 +1,5 @@
+include("Transversal.jl")
+
 function Base.:(∈)(g::AbstractPermutation, S::AbstractVector{<:AbstractPermutation})
 	return sift(stabilizerChain(S), g) == one(Permutation([1]))
 end
@@ -7,7 +9,7 @@ function normalClosure(S::AbstractVector{<:GroupElement}, U::AbstractVector{<:Gr
     for n in N
         for s in S
             γ = inv(s) * n * s
-            if γ ∉ N  # todo: this works if Julia automatically uses ∈ to define ∉
+            if γ ∉ N
                 push!(N, γ)
             end
         end
@@ -65,33 +67,17 @@ end
 mutable struct PointStabilizer{P<:AbstractPermutation}
     S::AbstractVector{P}
     x::Integer
-    T#::Transversal
+    T::Transversal
     stabilizer::PointStabilizer{P}
 
     PointStabilizer{P}() where P = new{P}(Vector{P}())  # incomplete initialization
-
-    generators(pointStabilizer::PointStabilizer) = pointStabilizer.S
-    # point(pointStabilizer::PointStabilizer) = pointStabilizer.x
-    point(pointStabilizer::PointStabilizer) = first(transversal(pointStabilizer))
-    transversal(pointStabilizer::PointStabilizer) = pointStabilizer.transversal
-    stabilizer(pointStabilizer::PointStabilizer) = pointStabilizer.stabilizer
-
-    Base.isempty(pointStabilizer::PointStabilizer) = isempty(generators(pointStabilizer))  # or: point(pointStabilizer) == 0
 end
 
-struct Transversal
-    x::Integer
-    T::AbstractVector{Integer}
-
-    function Transversal(x::Integer, S::AbstractVector{<:GroupElement})
-        _, aTransversal = transversal(S, [x])
-        new(x, aTransversal)
-    end
-
-    point(transversal::Transversal) = transversal.x
-    Base.getindex(transversal::Transversal, i) = transversal.T[i]
-    Base.length(transversal::Transversal) = length(transversal.T)
-end
+generators(pointStabilizer::PointStabilizer) = pointStabilizer.S
+point(pointStabilizer::PointStabilizer) = first(transversal(pointStabilizer))
+transversal(pointStabilizer::PointStabilizer) = pointStabilizer.T
+stabilizer(pointStabilizer::PointStabilizer) = pointStabilizer.stabilizer
+Base.isempty(pointStabilizer::PointStabilizer) = isempty(generators(pointStabilizer))
 
 function stabilizerChain(S::AbstractVector{<:AbstractPermutation})
     𝒞 = PointStabilizer{eltype(S)}()
@@ -127,6 +113,73 @@ function push!(pointStabilizer::PointStabilizer, g::AbstractPermutation)
     return pointStabilizer
 end
 
+function sift(pointStabilizer::PointStabilizer, g::AbstractPermutation)  # todo: should return more according to lecture (but not according to notebook)
+    # returns 1 iff g is in the point stabilizer
+    if isempty(pointStabilizer) || isone(g)
+        return g
+    else
+        x = point(pointStabilizer)
+        δ = x^g
+        T = transversal(pointStabilizer)
+        if δ in T
+            g = g * inv(T[δ])  # point in the stabilizer of x
+            @assert x^g == x
+            return sift(stabilizer(pointStabilizer), x)
+        else
+            return g
+        end
+    end
+end
+
+@inline firstMoved(g::AbstractPermutation) = findfirst(x -> x^g ≠ x, 1:(degree(g) + 1))
+
+function order(g::AbstractPermutation)
+    n = 1
+    e = one(g)
+    h = deepcopy(g)
+    while h^n ≠ e
+        h *= g
+        n += 1
+    end
+    return n
+end
+
+Base.:(^)
+
+function extendChain!(pointStabilizer::PointStabilizer{P}, g::AbstractPermutation) where P
+    @assert !isone(g)
+    Base.push!(pointStabilizer.S, g)
+    pointStabilizer.T = Transversal(generators(pointStabilizer), firstMoved(g))
+    pointStabilizer.stabilizer = PointStabilizer{P}()
+
+    k = length(transversal(pointStabilizer))
+    if k < order(g)
+        extendChain!(stabilizer(pointStabilizer), g^k)
+    end
+
+    return pointStabilizer
+end
+
+function extendGenerators!(pointStabilizer::PointStabilizer, g::AbstractPermutation)
+    @assert !isone(g)
+    # simple version
+    push!(pointStabilizer.S, g)
+    pointStabilizer.T = Transversal(generators(pointStabilizer), point(pointStabilizer))
+    T = transversal(pointStabilizer)
+
+    for s in generators(pointStabilizer)
+        for δ in transversal(pointStabilizer)  # iteration over points in the orbit
+            r = T[δ]
+            schreierGenerator = r * s * inv(T[δ^s])
+            if !isone(schreierGenerator)
+                push!(stabilizer(pointStabilizer), schreierGenerator)
+            end
+        end
+    end
+    return pointStabilizer
+end
+
+#=
 struct StabilizerChain
     S::AbstractVector{AbstractVector{<:GroupElement}}
     β::AbstractVector{Integer}
@@ -159,55 +212,5 @@ function push!(stabilizerChain::StabilizerChain, g::AbstractPermutation, d::Inte
     end
 end
 
-function sift(pointStabilizer::PointStabilizer, g::AbstractPermutation)  # todo: should return more
-    # returns 1 iff g is in the point stabilizer
-    if isempty(pointStabilizer) || isone(g)
-        return g
-    else
-        x = point(pointStabilizer)
-        δ = x^g
-        T = transversal(pointStabilizer)
-        if δ in T
-            r = T[δ]
-            g = g * inv(r)  # point in the stabilizer of x
-            @assert x^g == x
-            return sift(stabilizer(pointStabilizer), g)
-        else
-            return g
-        end
-    end
-end
 
-@inline firstMoved(g::AbstractPermutation) = findfirst(x -> x^g ≠ x, 1:(degree(g) + 1))
-
-function extendChain!(pointStabilizer::PointStabilizer{P}, g::AbstractPermutation) where P
-    @assert !isone(g)
-    push!(pointStabilizer.S, g)
-    pointStabilizer.T = Transversal(firstMoved(g), generators(pointStabilizer))
-    pointStabilizer.stabilizer = PointStabilizer{P}()
-
-    k = length(pointStabilizer.T)
-    if k < order(g)
-        extendChain!(stabilizer(pointStabilizer), g^k)
-    end
-
-    return pointStabilizer
-end
-
-function extendGenerators(pointStabilizer::PointStabilizer, g::AbstractPermutation)
-    @assert !isone(g)
-    # simple version
-    push!(pointStabilizer.S, g)
-    pointStabilizer.T = Transversal(point(pointStabilizer), generators(pointStabilizer))
-    T = transversal(pointStabilizer)
-    for s in generators(pointStabilizer)
-        for δ in transversal(pointStabilizer)  # iteration over points in the orbit
-            r = T[δ]
-            schreier_generator = r * s * inv(T[δ^s])
-            if !isone(schreier_generator)
-                push!(stabilizer(pointStabilizer), schreier_generator)
-            end
-        end
-    end
-    return pointStabilizer
-end
+=#

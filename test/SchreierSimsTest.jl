@@ -1,4 +1,4 @@
-import Permutation
+using ComputationalGroupTheory
 
 S₀ = [perm"(1, 2, 3, 4)(3, 4)"]
 
@@ -26,5 +26,5 @@ S₆ = [perm"(1, 3, 8, 6)(2, 5, 7, 4)(9, 33, 25, 17)(10, 34, 26, 18)(11, 35, 27,
       perm"(41, 43, 48, 46)(42, 45, 47, 44)(14, 22, 30, 38)(15, 23, 31, 39)(16, 24, 32, 40)"]
 
 @testset "SchreierSims" begin
-    schreierSims(S₁)
+      @info schreierSims(S₀)
 end

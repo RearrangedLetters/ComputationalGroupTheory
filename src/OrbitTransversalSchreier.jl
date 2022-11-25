@@ -17,7 +17,7 @@ function orbit(s::GroupElement, ω::Int, action=^)
     ωᴳ = [ω]
     γ = action(ω, s)
     while γ != ω
-        push!(ωᴳ, γ)
+        Base.push!(ωᴳ, γ)
         γ = action(γ, s)
     end
     return ωᴳ
@@ -44,8 +44,8 @@ function orbit(S::AbstractVector{<:GroupElement}, Ω::AbstractVector, action=^, 
         for s in S
             γ = action(δ, s)
             if γ ∉ Ωᴳ_check
-                push!(Ωᴳ, γ)
-                push!(Ωᴳ_check, γ)
+                Base.push!(Ωᴳ, γ)
+                Base.push!(Ωᴳ_check, γ)
             end
         end
     end
@@ -59,16 +59,12 @@ end
 function cycle_decomposition(σ::AbstractPermutation)
     visited = falses(degree(σ))
     cycles = Vector{Vector{Int}}()
-    # each cycle will be a Vector{Int} and we have a whole bunch of them
     for i in 1:degree(σ)
-        if visited[i]
-            # if we have already seen this point there is no point in computing
-            # the same orbit twice
-            continue # i.e. skip the rest of the body and continue with the next i
+        if !visited[i]
+            Δ = orbit(σ, i, ^)
+            visited[Δ] .= true
+            Base.push!(cycles, Δ)
         end
-        Δ = orbit_plain(i, σ, ^)
-        visited[Δ] .= true # modify the `visited` along the whole orbit
-        push!(cycles, Δ) # add obtained orbit to cycles
     end
     return cycles
 end
@@ -89,7 +85,7 @@ function Base.show(io::IO, σ::AbstractPermutation)
     end
 end
 
-function transversal(S::AbstractVector{<:GroupElement}, Ω, action=^, makeSymmetric=true)
+function transversal(S::AbstractVector{<:GroupElement}, x, action=^, makeSymmetric=true)
     #=
     In:  • G = ⟨S⟩ acts on Ω by the given action
          • A set Ω
@@ -101,7 +97,7 @@ function transversal(S::AbstractVector{<:GroupElement}, Ω, action=^, makeSymmet
     if makeSymmetric
         makeSymmetric!(S)
     end
-    Ωᴳ = Ω
+    Ωᴳ = [x]
     Ωᴳ_check = Set(Ωᴳ)
     T = Dict(x => one(first(S)))
     for δ in Ωᴳ
@@ -111,15 +107,15 @@ function transversal(S::AbstractVector{<:GroupElement}, Ω, action=^, makeSymmet
                 if haskey(T, δ)
 					T[γ] = T[δ] * s
 				end
-                push!(Ωᴳ, γ)
-                push!(Ωᴳ_check, γ)
+                Base.push!(Ωᴳ, γ)
+                Base.push!(Ωᴳ_check, γ)
             end
         end
     end
     return Ωᴳ, T
 end
 
-function transversal_factored(S::AbstractVector{<:GroupElement}, Ω, action=^, makeSymmetric=true)
+function transversal_factored(S::AbstractVector{<:GroupElement}, x, action=^, makeSymmetric=true)
     #=
     In:  • G = ⟨S⟩ acts on Ω by the given action
          • A set Ω
@@ -131,7 +127,7 @@ function transversal_factored(S::AbstractVector{<:GroupElement}, Ω, action=^, m
     if makeSymmetric
         makeSymmetric!(S)
     end
-    Ωᴳ = Ω
+    Ωᴳ = [x]
     Ωᴳ_check = Set(Ωᴳ)
     T = Dict(x => one(first(S)))
     for δ in Ωᴳ

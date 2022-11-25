@@ -19,6 +19,22 @@ function Base.:^(n::Integer, σ::Permutation)
     end
 end
 
+function Base.:^(σ::Permutation, n::Integer)
+    τ = one(σ)
+    k = n // 1
+    while k ≥ 2
+        if iseven(k)
+            σ *= σ
+            k //= 2
+        else
+            τ *= σ
+            σ *= σ
+            k = (k - 1) // 2
+        end
+    end
+    return σ * τ
+end
+
 function Base.:(*)(σ::Permutation, τ::Permutation)
     range = max(degree(σ), degree(τ))
     result = collect(1:range)
