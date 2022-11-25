@@ -1,6 +1,6 @@
 module ComputationalGroupTheory
 
-export Permutation, degree, orbit, @perm_str, schreierSims
+export Permutation, degree, orbit, @perm_str, schreierSims, order
 
 include("AbstractPermutation.jl")
 include("CyclePermutation.jl")

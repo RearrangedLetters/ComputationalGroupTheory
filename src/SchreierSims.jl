@@ -79,17 +79,6 @@ transversal(pointStabilizer::PointStabilizer) = pointStabilizer.T
 stabilizer(pointStabilizer::PointStabilizer) = pointStabilizer.stabilizer
 Base.isempty(pointStabilizer::PointStabilizer) = isempty(generators(pointStabilizer))
 
-function stabilizerChain(S::AbstractVector{<:AbstractPermutation})
-    𝒞 = PointStabilizer{eltype(S)}()
-    for s ∈ S
-        _, r = sift(𝒞, s)
-        if r ≠ one(first(S))
-            push!(𝒞, r)
-        end
-    end
-    return 𝒞
-end
-
 function schreierSims(S::AbstractVector{<:AbstractPermutation})
     @assert !isempty(S)
     pointStabilizer = PointStabilizer{eltype(S)}()
@@ -110,6 +99,7 @@ function push!(pointStabilizer::PointStabilizer, g::AbstractPermutation)
         extendGenerators!(pointStabilizer, g)
     end
 
+    @info pointStabilizer
     return pointStabilizer
 end
 
@@ -144,8 +134,6 @@ function order(g::AbstractPermutation)
     return n
 end
 
-Base.:(^)
-
 function extendChain!(pointStabilizer::PointStabilizer{P}, g::AbstractPermutation) where P
     @assert !isone(g)
     Base.push!(pointStabilizer.S, g)
@@ -177,6 +165,23 @@ function extendGenerators!(pointStabilizer::PointStabilizer, g::AbstractPermutat
         end
     end
     return pointStabilizer
+end
+
+function Base.iterate(pointStabilizer::PointStabilizer{P}, pointStabilizer2::PointStabilizer{P}=pointStabilizer) where P
+    if !isempty(pointStabilizer2.stabilizer)
+        return pointStabilizer2.stabilizer, pointStabilizer2.stabilizer
+    else
+        return nothing
+    end
+end
+
+function order(S::AbstractVector{<:GroupElement})
+    𝒞 = schreierSims(S)
+    order = 1
+    for C in 𝒞
+        order *= length(transversal(C))
+    end
+    return order
 end
 
 #=
