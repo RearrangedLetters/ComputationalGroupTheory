@@ -37,21 +37,18 @@ function Base.showerror(io::IO, e::NotInOrbit)
 end
 
 struct Transversal{S, T} <: AbstractTransversal{S, T}
+    x::S
     Ωᴳ::AbstractVector{S}
     T::AbstractDict{S, T}
 
     function Transversal(g::GroupElement, x, action=^)
         Ωᴳ, T = transversal([g], [x], action)
-        typeofS = typeof(x)
-        typeofT = typeof(last(first(T)))
-        new{typeofS, typeofT}(Ωᴳ, T)
+        new{typeof(x), typeof(last(first(T)))}(x, Ωᴳ, T)
     end
 
     function Transversal(S::AbstractVector{<:GroupElement}, x, action=^)
         Ωᴳ, T = transversal(S, x, action)
-        typeofS = typeof(x)
-        typeofT = typeof(last(first(T)))
-        new{typeofS, typeofT}(Ωᴳ, T)
+        new{typeof(x), typeof(last(first(T)))}(x, Ωᴳ, T)
     end
 end
 
@@ -66,5 +63,9 @@ end
 Base.length(transversal::Transversal) = length(transversal.Ωᴳ)
 
 function Base.iterate(transversal::Transversal, i=1)
-    return i ≥ length(transversal) ? nothing : (transversal[i], i + 1)
+    return i > length(transversal) ? nothing : (transversal.Ωᴳ[i], i + 1)
+end
+
+function Base.show(io::IO, transversal::Transversal)
+    println(io, transversal.T)
 end

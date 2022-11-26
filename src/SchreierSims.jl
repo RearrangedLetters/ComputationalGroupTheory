@@ -66,7 +66,7 @@ end
 
 mutable struct PointStabilizer{P<:AbstractPermutation}
     S::AbstractVector{P}
-    x::Integer
+    # x::Integer
     T::Transversal
     stabilizer::PointStabilizer{P}
 
@@ -74,7 +74,7 @@ mutable struct PointStabilizer{P<:AbstractPermutation}
 end
 
 generators(pointStabilizer::PointStabilizer) = pointStabilizer.S
-point(pointStabilizer::PointStabilizer) = first(transversal(pointStabilizer))
+point(pointStabilizer::PointStabilizer) = pointStabilizer.T.x
 transversal(pointStabilizer::PointStabilizer) = pointStabilizer.T
 stabilizer(pointStabilizer::PointStabilizer) = pointStabilizer.stabilizer
 Base.isempty(pointStabilizer::PointStabilizer) = isempty(generators(pointStabilizer))
@@ -88,7 +88,7 @@ function schreierSims(S::AbstractVector{<:AbstractPermutation})
     return pointStabilizer
 end
 
-function push!(pointStabilizer::PointStabilizer, g::AbstractPermutation)
+function Base.push!(pointStabilizer::PointStabilizer, g::AbstractPermutation)
     g = sift(pointStabilizer, g)
     if isone(g)
         return pointStabilizer
@@ -110,10 +110,10 @@ function sift(pointStabilizer::PointStabilizer, g::AbstractPermutation)  # todo:
         x = point(pointStabilizer)
         δ = x^g
         T = transversal(pointStabilizer)
-        if δ in T
+        if δ ∈ T
             g = g * inv(T[δ])  # point in the stabilizer of x
             @assert x^g == x
-            return sift(stabilizer(pointStabilizer), x)
+            return sift(stabilizer(pointStabilizer), g)
         else
             return g
         end
@@ -135,7 +135,7 @@ end
 
 function extendChain!(pointStabilizer::PointStabilizer{P}, g::AbstractPermutation) where P
     @assert !isone(g)
-    Base.push!(pointStabilizer.S, g)
+    push!(pointStabilizer.S, g)
     pointStabilizer.T = Transversal(generators(pointStabilizer), firstMoved(g))
     pointStabilizer.stabilizer = PointStabilizer{P}()
 
@@ -150,7 +150,7 @@ end
 function extendGenerators!(pointStabilizer::PointStabilizer, g::AbstractPermutation)
     @assert !isone(g)
     # simple version
-    Base.push!(pointStabilizer.S, g)
+    push!(pointStabilizer.S, g)
     pointStabilizer.T = Transversal(generators(pointStabilizer), point(pointStabilizer))
     T = transversal(pointStabilizer)
 
@@ -170,7 +170,7 @@ function Base.iterate(pointStabilizer::PointStabilizer{P},
                       iterator::PointStabilizer{P}=pointStabilizer) where P
 
     if isdefined(iterator, :stabilizer)
-        return pointStabilizer, iterator.stabilizer
+        return iterator, iterator.stabilizer
     else
         return nothing
     end
@@ -178,7 +178,7 @@ end
 
 function order(S::AbstractVector{<:GroupElement})
     𝒞 = schreierSims(S)
-    order = 1
+    order = BigInt(1)
     for C in 𝒞
         order *= length(transversal(C))
     end
@@ -192,10 +192,10 @@ function Base.show(io::IO, pointStabilizer::PointStabilizer)
         for C in pointStabilizer
             if isempty(C)
                 print(io, "⟨⟩")
-            elseif degree(first(generators(C))) == 1
-                print(io, "⟨$(generators(C))⟩")
-                print(io, point(C))
-                print(io, transversal(C))
+            else
+                print(io, "G_i = ⟨$(generators(C))⟩, ")
+                print(io, "x = $(point(C)), ")
+                print(io, "T = $(transversal(C))")
             end
         end
     end
