@@ -1,4 +1,5 @@
 using ComputationalGroupTheory
+using Test
 
 S₀ = [perm"(1, 2, 3, 4)(3, 4)"]
 
@@ -25,9 +26,38 @@ S₆ = [perm"(1, 3, 8, 6)(2, 5, 7, 4)(9, 33, 25, 17)(10, 34, 26, 18)(11, 35, 27,
       perm"(33, 35, 40, 38)(34, 37, 39, 36)(3, 9, 46, 32)(2, 12, 47, 29)(1, 14, 48, 27)",
       perm"(41, 43, 48, 46)(42, 45, 47, 44)(14, 22, 30, 38)(15, 23, 31, 39)(16, 24, 32, 40)"]
 
-@testset "SchreierSims" begin
-      @info S₀
-      @info order(first(S₀))
-      @info schreierSims(S₀)
-      @info order(S₀)
+@testset "SchreierSims_trivial" begin
+    e = one(Permutation([1]))
+    @info schreierSims([e])
+    @test order([e]) == order(e)
 end
+
+@testset "SchreierSims_simple_0" begin
+    σ = perm"(1, 2)"
+    @info schreierSims([σ])
+    @test order([σ]) == order(σ)
+end
+
+@testset "SchreierSims_S0" begin
+    𝒞 = schreierSims(S₀)
+    @info "Stabilizer chain: $𝒞"
+    @test order(S₀) == order(first(S₀))
+    @info "|G| = $(order(S₀))"
+    @info "|s| = $(order(first(S₀)))"
+    @test length(𝒞) == 1
+end
+
+@testset "PointStabilizer_0" begin
+    𝒞 = PointStabilizer{Permutation}()
+    @info 𝒞
+    @test length(𝒞) == 0
+end
+
+@testset "SchreierSims_S1" begin
+    # @info S₁
+    # @info order(first(S₁))
+    𝒞 = schreierSims(S₁)
+    @info "Stabilizer chain: $𝒞"
+    #@info order(S₁)
+end
+

@@ -15,3 +15,18 @@ end
     σ = perm"(1, 2, 3, 4)(3, 4)"
     @test σ == Permutation([2, 3, 1, 4])
 end
+
+@testset "Permutation_3" begin
+    σ = perm"(1, 2, 3)"
+    @test σ^1 == σ
+    @test σ^2 == σ * σ
+    @test σ^2 == σ^σ
+    @test σ^3 == one(σ)
+
+    τ = perm"(1, 2)"
+    η = perm"(2, 3)"
+    @test τ * η == perm"(1, 3, 2)"
+    @test η * τ == perm"(1, 2, 3)"
+    @test τ^η == perm"(1, 3, 2)"
+    @test η^τ == perm"(1, 2, 3)"
+end
