@@ -66,12 +66,24 @@ end
 
 mutable struct PointStabilizer{P<:AbstractPermutation}
     S::AbstractVector{P}
-    # x::Integer
-    T::Transversal
+    T::AbstractTransversal
     stabilizer::PointStabilizer{P}
 
     PointStabilizer{P}() where P = new{P}(Vector{P}())
+    #= function PointStabilizer{P}(transversal::AbstractTransversal) where P
+        new{P}(Vector{P}(), transversal)
+    end =#
 end
+
+#= mutable struct PointStabilizer{P<:AbstractPermutation, R<:AbstractOrbit}
+    S::AbstractVector{P}
+    T::R
+    stabilizer::PointStabilizer{P, R}
+
+    function PointStabilizer{P::AbstractPermutation, R::AbstractOrbit}()
+        PointStabilizer{P, R}() where P = new{P, R}(Vector{P}())
+    end
+end =#
 
 generators(pointStabilizer::PointStabilizer) = pointStabilizer.S
 point(pointStabilizer::PointStabilizer) = pointStabilizer.T.x
@@ -166,8 +178,8 @@ function extendGenerators!(pointStabilizer::PointStabilizer, g::AbstractPermutat
     return pointStabilizer
 end
 
-function Base.iterate(pointStabilizer::PointStabilizer{P},
-                      iterator::PointStabilizer{P}=pointStabilizer) where P
+function Base.iterate(pointStabilizer::PointStabilizer,
+                      iterator::PointStabilizer=pointStabilizer)
 
     if isdefined(iterator, :stabilizer)
         return iterator, iterator.stabilizer

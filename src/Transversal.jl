@@ -1,14 +1,14 @@
 """
-    AbstractOrbit{S}
-Abstract type representing abstract orbits of elements of type `S`.
+    AbstractOrbit{X}
+Abstract type representing abstract orbits of elements of type `X`.
 """
-abstract type AbstractOrbit{S} end
+abstract type AbstractOrbit{X} end
 
 """
-    AbstractTransversal{S, T} <: AbstractOrbit{S}
+    AbstractTransversal{X, Y} <: AbstractOrbit{X}
 Abstract type representing the bijection of orbit oand orbit representatives.
 
-`S` is the type of elements in the orbit, while `T` is the type of the
+`X` is the type of elements in the orbit, while `Y` is the type of the
 representatives. When `tr` is a transversal of `x` and `g` is a `GroupElement`
 then `tr[x^g]` returns the representative of the `g`-coset of the stabilizer of `x`.
 
@@ -23,32 +23,32 @@ then `tr[x^g]` returns the representative of the `g`-coset of the stabilizer of 
    If no such element exists a `NotInOrbit` exception will be thrown.
  * Iteration protocol, iterating over points in the orbit.
 """
-abstract type AbstractTransversal{S, T<:GroupElement} <: AbstractOrbit{S} end
+abstract type AbstractTransversal{X<:GroupElement, Y} <: AbstractOrbit{X} end
 
-Base.eltype(::Type{<:AbstractTransversal{S}}) where S = S
+Base.eltype(::Type{<:AbstractTransversal{X}}) where X = X
 
 struct NotInOrbit <: Exception
     x
     first
 end
 
-function Base.showerror(io::IO, e::NotInOrbit)
-    print(io, e.x, " was not found in the orbit of ", e.first)
+function Base.showerror(io::IO, error::NotInOrbit)
+    print(io, error.x, " was not found in the orbit of ", error.first)
 end
 
-struct Transversal{S, T} <: AbstractTransversal{S, T}
-    x::S
-    Ωᴳ::AbstractVector{S}
-    T::AbstractDict{S, T}
+struct Transversal{X, Y} <: AbstractTransversal{X, Y}
+    x::Y
+    Ωᴳ::AbstractVector{Y}
+    T::AbstractDict{Y, X}
 
     function Transversal(g::GroupElement, x, action=^)
         Ωᴳ, T = transversal([g], [x], action)
-        new{typeof(x), typeof(last(first(T)))}(x, Ωᴳ, T)
+        new{GroupElement, typeof(x)}(x, Ωᴳ, T)
     end
 
-    function Transversal(S::AbstractVector{<:GroupElement}, x, action=^)
+    function Transversal(S::AbstractVector{X}, x, action=^) where X<:GroupElement
         Ωᴳ, T = transversal(S, x, action)
-        new{typeof(x), typeof(last(first(T)))}(x, Ωᴳ, T)
+        new{X, typeof(x)}(x, Ωᴳ, T)
     end
 end
 
@@ -68,4 +68,37 @@ end
 
 function Base.show(io::IO, transversal::Transversal)
     println(io, transversal.T)
+end
+
+struct FactoredTransversal{X, Y} <: AbstractTransversal{X, Y}
+    x::Y
+    Ωᴳ::AbstractVector{Y}
+    T::AbstractDict{Y, X}
+
+    function FactoredTransversal(g::GroupElement, x, action=^)
+        Ωᴳ, T = transversalFactored([g], [x], action)
+        new{GroupElement, typeof(x)}(x, Ωᴳ, T)
+    end
+
+    function FactoredTransversal(S::AbstractVector{X}, x, action=^) where X<:GroupElement
+        Ωᴳ, T = transversalFactored(S, x, action)
+        @info typeof(T)
+        new{X, typeof(x)}(x, Ωᴳ, T)
+    end
+end
+
+function Base.getindex(transversal::FactoredTransversal, n::Integer)
+    if haskey(transversal.T, n)
+        hit = transversal.T[n]
+        hit = foldl(*, hit)
+        return hit
+    else
+        throw(NotInOrbit(n, transversal.Ωᴳ))
+    end
+end
+
+Base.length(transversal::FactoredTransversal) = length(transversal.Ωᴳ)
+
+function Base.iterate(transversal::FactoredTransversal, i=1)
+    return i > length(transversal) ? nothing : (transversal.Ωᴳ[i], i + 1)
 end

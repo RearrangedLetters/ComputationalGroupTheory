@@ -25,6 +25,16 @@ end
     @test orbit(σ, 1) == [1, 2, 3, 4]
 end
 
+@testset "Transversal_1" begin
+    σ = Permutation([1, 3, 4, 2])
+    τ = Permutation([1, 2, 4, 5, 3])
+    x = 2
+	Δ, T = transversal([σ, τ], x)
+	for δ in Δ
+		@test x^T[δ] == δ
+	end
+end
+
 @testset "FactoredTransversal_1" begin
     σ = Permutation([1, 3, 4, 2])
     τ = Permutation([1, 2, 4, 5, 3])
