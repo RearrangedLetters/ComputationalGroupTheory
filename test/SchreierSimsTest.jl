@@ -74,7 +74,7 @@ end
 
 @testset "SchreierSims_S6" begin
     @info order(S₆)
-end
+end=#
 
 @testset "SchreierSims_Orders" begin
     @test order(S₀) == 3
@@ -83,8 +83,8 @@ end
     @test order(S₄) == 3674160  # todo: Generators probably not correct
     @test order(S₅) == 49152  # todo: correct?
     @test order(S₆) == 43252003274489856000
-end =#
+end 
 
 @testset "SchreierSims_Benchmark_1" begin
-    @benchmark order(S₆)
+    @btime order(S₆)
 end
