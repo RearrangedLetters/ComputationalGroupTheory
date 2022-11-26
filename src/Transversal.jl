@@ -59,7 +59,7 @@ function Base.getindex(transversal::Transversal, n::Integer)
     if haskey(transversal.T, n)
         return transversal.T[n]
     else
-        throw(NotInOrbit(n, n))  # todo: implement this according to the interface
+        throw(NotInOrbit(n, transversal.Ωᴳ))
     end
 end
 

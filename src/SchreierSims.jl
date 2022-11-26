@@ -70,7 +70,7 @@ mutable struct PointStabilizer{P<:AbstractPermutation}
     T::Transversal
     stabilizer::PointStabilizer{P}
 
-    PointStabilizer{P}() where P = new{P}(Vector{P}())  # incomplete initialization
+    PointStabilizer{P}() where P = new{P}(Vector{P}())
 end
 
 generators(pointStabilizer::PointStabilizer) = pointStabilizer.S
@@ -99,7 +99,6 @@ function push!(pointStabilizer::PointStabilizer, g::AbstractPermutation)
         extendGenerators!(pointStabilizer, g)
     end
 
-    @info pointStabilizer
     return pointStabilizer
 end
 
@@ -151,7 +150,7 @@ end
 function extendGenerators!(pointStabilizer::PointStabilizer, g::AbstractPermutation)
     @assert !isone(g)
     # simple version
-    push!(pointStabilizer.S, g)
+    Base.push!(pointStabilizer.S, g)
     pointStabilizer.T = Transversal(generators(pointStabilizer), point(pointStabilizer))
     T = transversal(pointStabilizer)
 
@@ -167,9 +166,11 @@ function extendGenerators!(pointStabilizer::PointStabilizer, g::AbstractPermutat
     return pointStabilizer
 end
 
-function Base.iterate(pointStabilizer::PointStabilizer{P}, pointStabilizer2::PointStabilizer{P}=pointStabilizer) where P
-    if !isempty(pointStabilizer2.stabilizer)
-        return pointStabilizer2.stabilizer, pointStabilizer2.stabilizer
+function Base.iterate(pointStabilizer::PointStabilizer{P},
+                      iterator::PointStabilizer{P}=pointStabilizer) where P
+
+    if isdefined(iterator, :stabilizer)
+        return pointStabilizer, iterator.stabilizer
     else
         return nothing
     end
@@ -182,6 +183,30 @@ function order(S::AbstractVector{<:GroupElement})
         order *= length(transversal(C))
     end
     return order
+end
+
+function Base.show(io::IO, pointStabilizer::PointStabilizer)
+    if isempty(pointStabilizer)
+        print(io, "⟨⟩")
+    else
+        for C in pointStabilizer
+            if isempty(C)
+                print(io, "⟨⟩")
+            elseif degree(first(generators(C))) == 1
+                print(io, "⟨$(generators(C))⟩")
+                print(io, point(C))
+                print(io, transversal(C))
+            end
+        end
+    end
+end
+
+function Base.length(pointStabilizer::PointStabilizer)
+    count = 0
+    for _ in pointStabilizer
+        count += 1
+    end
+    return count
 end
 
 #=

@@ -35,6 +35,10 @@ function Base.:^(σ::Permutation, n::Integer)
     return σ * τ
 end
 
+function Base.:^(σ::Permutation, τ::Permutation)
+    return σ * τ
+end
+
 function Base.:(*)(σ::Permutation, τ::Permutation)
     range = max(degree(σ), degree(τ))
     result = collect(1:range)
