@@ -1,7 +1,7 @@
 module ComputationalGroupTheory
 
 export Permutation, degree, orbit, transversal, transversalFactored, transversalSchreier, representative,
-       @perm_str, schreierSims, order, PointStabilizer
+       @perm_str, schreierSims, order, PointStabilizer, FactoredTransversal
 
 include("AbstractPermutation.jl")
 include("CyclePermutation.jl")
