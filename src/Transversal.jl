@@ -73,7 +73,7 @@ end
 struct FactoredTransversal{X, Y} <: AbstractTransversal{X, Y}
     x::Y
     Ωᴳ::AbstractVector{Y}
-    T::AbstractDict{Y, X}
+    T::AbstractDict{Y, <:AbstractVector{X}}
 
     function FactoredTransversal(g::GroupElement, x, action=^)
         Ωᴳ, T = transversalFactored([g], [x], action)
@@ -82,16 +82,15 @@ struct FactoredTransversal{X, Y} <: AbstractTransversal{X, Y}
 
     function FactoredTransversal(S::AbstractVector{X}, x, action=^) where X<:GroupElement
         Ωᴳ, T = transversalFactored(S, x, action)
-        @info typeof(T)
         new{X, typeof(x)}(x, Ωᴳ, T)
     end
 end
 
 function Base.getindex(transversal::FactoredTransversal, n::Integer)
     if haskey(transversal.T, n)
-        hit = transversal.T[n]
-        hit = foldl(*, hit)
-        return hit
+        g = foldl(*, transversal.T[n])
+        transversal.T[n] = [g]
+        return g
     else
         throw(NotInOrbit(n, transversal.Ωᴳ))
     end

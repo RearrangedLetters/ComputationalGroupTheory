@@ -148,7 +148,7 @@ end
 function extendChain!(pointStabilizer::PointStabilizer{P}, g::AbstractPermutation) where P
     @assert !isone(g)
     push!(pointStabilizer.S, g)
-    pointStabilizer.T = Transversal(generators(pointStabilizer), firstMoved(g))
+    pointStabilizer.T = FactoredTransversal(generators(pointStabilizer), firstMoved(g))
     pointStabilizer.stabilizer = PointStabilizer{P}()
 
     k = length(transversal(pointStabilizer))
@@ -163,7 +163,7 @@ function extendGenerators!(pointStabilizer::PointStabilizer, g::AbstractPermutat
     @assert !isone(g)
     # simple version
     push!(pointStabilizer.S, g)
-    pointStabilizer.T = Transversal(generators(pointStabilizer), point(pointStabilizer))
+    pointStabilizer.T = FactoredTransversal(generators(pointStabilizer), point(pointStabilizer))
     T = transversal(pointStabilizer)
 
     for s in generators(pointStabilizer)

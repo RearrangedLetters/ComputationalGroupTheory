@@ -3,4 +3,7 @@ uuid = "205954bd-1624-4fe0-9b60-d02b4b183d95"
 
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+LanguageServer = "2b0e0bc5-e4fd-59b4-8912-456d1b03d8d7"
+PProf = "e4faabce-9ead-11e9-39d9-4379958e3056"
+Profile = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

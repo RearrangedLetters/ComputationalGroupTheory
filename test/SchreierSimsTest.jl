@@ -1,6 +1,8 @@
 using ComputationalGroupTheory
 using Test
 using BenchmarkTools
+using Profile
+using PProf
 
 S₀ = [perm"(1, 2, 3, 4)(3, 4)"]
 
@@ -76,14 +78,14 @@ end
     @info order(S₆)
 end=#
 
-@testset "SchreierSims_Orders" begin
+#= @testset "SchreierSims_Orders" begin
     @test order(S₀) == 3
     @test order(S₁) == 12  # todo: 12 correct?
     @test order(S₃) == factorial(16)
     @test order(S₄) == 3674160  # todo: Generators probably not correct
     @test order(S₅) == 49152  # todo: correct?
     @test order(S₆) == 43252003274489856000
-end 
+end  =#
 
 @testset "SchreierSims_Benchmark_1" begin
     @btime order(S₆)

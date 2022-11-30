@@ -52,7 +52,7 @@ function degree(σ::Permutation)
     return something(findlast(i -> σ.images[i] != i, 1:length(σ.images)), 1)
 end
 
-macro perm_str(s::String)
+macro perm_str(s::String)  # todo: this can be optimized by calculating the images and calling the constructor only once
     permutation = one(Permutation([1]))
     subS = s
     while true

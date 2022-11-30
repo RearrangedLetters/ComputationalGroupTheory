@@ -3,5 +3,5 @@ using Test
 
 # include("PermutationTest.jl")
 # include("OrbitTransversalSchreierTest.jl")
-# include("SchreierSimsTest.jl")
-include("TransversalTest.jl")
+include("SchreierSimsTest.jl")
+# include("TransversalTest.jl")
