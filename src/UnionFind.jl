@@ -2,20 +2,33 @@ mutable struct UnionFind
     #=
     Maintains a partition of the set {1:n}
     =#
-    n::UInt
+    S::Set{Any}
+    n::Integer
     parents::Vector{UInt}
     ranks::Vector{UInt}
+    f
 
-    function UnionFind(n::Int)
-        new(convert(UInt, n), collect(UInt, 1:n), zeros(UInt, n))
+    function UnionFind(n::Integer)
+        new(Set(collect(UInt, 1:n)),
+            n,
+            collect(UInt, 1:n),
+            zeros(UInt, n),
+            x -> convert(UInt, x))
+    end
+
+    function UnionFind(S::Set, f)
+        max = maximum([f(s) for s in S])
+        new(S, max, collect(UInt, 1:max), zeros(UInt, max), f)
     end
 end
 
-function find!(unionFind::UnionFind, i::Integer)
+Base.length(unionFind::UnionFind) = unionFind.n
+
+function find!(unionFind::UnionFind, i)
     #=
     Returns the representative of i.
     =#
-    # i = convert(UInt, i)
+    i = unionFind.f(i)
     if unionFind.parents[i] == i
         return i
     end
@@ -39,33 +52,32 @@ function link!(unionFind::UnionFind, i::UInt, j::UInt)
     end
 end
 
-function Base.union!(unionFind::UnionFind, i::Integer, j::Integer)
+function Base.union!(unionFind::UnionFind, i, j)
     #=
     Joins two blocks.
     =#
-    rᵢ = find!(unionFind, convert(UInt, i))
-    rⱼ = find!(unionFind, convert(UInt, j))
+    rᵢ = find!(unionFind, unionFind.f(i))
+    rⱼ = find!(unionFind, unionFind.f(j))
     if rᵢ ≠ rⱼ
         link!(unionFind, rᵢ, rⱼ)
     end
 end
 
 function collectBlocks(unionFind::UnionFind)
-    # numberOfBlocks = length(unique(unionFind.parents))
-    blocks = Vector{Vector{UInt}}()
+    blocks = Vector{Vector{eltype(unionFind.S)}}()
     nextBlockIndex::UInt = 1
     blockAssignment = Dict{UInt, Int}()
-    for i in 1:(unionFind.n)
-        rᵢ = find!(unionFind, i)
+    for s in unionFind.S
+        rᵢ = find!(unionFind, unionFind.f(s))
         if !haskey(blockAssignment, rᵢ)
             blockAssignment[rᵢ] = nextBlockIndex
             nextBlockIndex += 1
         end
-        block = blockAssignment[rᵢ]
-        if block > length(blocks)
-            push!(blocks, Vector{UInt}())
+        blockIndex = blockAssignment[rᵢ]
+        if blockIndex > length(blocks)
+            push!(blocks, Vector{eltype(unionFind.S)}())
         end
-        push!(blocks[block], i)
+        push!(blocks[blockIndex], s)
     end
     return blocks
 end

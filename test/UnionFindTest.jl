@@ -7,7 +7,7 @@ using Base.Iterators
     unionFind = UnionFind(n)
     @test length(collectBlocks(unionFind)) == n
     for i in 1:(n - 1)
-        union(unionFind, i, i + 1)
+        union!(unionFind, i, i + 1)
     end
     blocks = collectBlocks(unionFind)
     @test length(blocks) == 1
@@ -26,4 +26,15 @@ end
     set = collect(Iterators.flatten(blocks))
     @test 1:n ⊆ set && set ⊆ 1:n
     @test Vector{UInt}() ∉ blocks
+end
+
+@testset "UnionFind_3" begin
+    S = Set('a':'z')
+    f(x) = UInt(x)
+    unionFind = UnionFind(S, f)
+    blocks = collectBlocks(unionFind)
+    set = collect(Iterators.flatten(blocks))
+    @test S ⊆ set && set ⊆ S
+    @test Vector{UInt}() ∉ blocks
+    union!(unionFind, 'a', 'b')
 end
