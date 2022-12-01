@@ -5,4 +5,5 @@ using Test
 # include("OrbitTransversalSchreierTest.jl")
 # include("SchreierSimsTest.jl")
 # include("TransversalTest.jl")
-include("BacktrackTest.jl")
+# include("BacktrackTest.jl")
+include("UnionFindTest.jl")
