@@ -1,6 +1,6 @@
 #=
 Todo:
-    • Use Threads.Atomic types to make it thread-safe
+    • Use atomic to make it thread-safe
 =#
 
 mutable struct UnionFind
