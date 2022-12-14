@@ -1,4 +1,5 @@
 using ComputationalGroupTheory
+# using ExactLinearAlgebra
 using Test
 
 # include("PermutationTest.jl")
@@ -6,4 +7,5 @@ using Test
 # include("SchreierSimsTest.jl")
 # include("TransversalTest.jl")
 # include("BacktrackTest.jl")
-include("UnionFindTest.jl")
+# include("UnionFindTest.jl")
+include("ExactMatricesTest.jl")
