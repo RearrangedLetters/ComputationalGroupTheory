@@ -1,3 +1,8 @@
+#=
+Todo:
+    • Use Threads.Atomic types to make it thread-safe
+=#
+
 mutable struct UnionFind
     #=
     Maintains a partition of the set {1:n}
