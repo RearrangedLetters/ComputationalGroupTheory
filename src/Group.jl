@@ -1,20 +1,15 @@
 abstract type Group end
 abstract type AbstractPermutationGroup{P<:AbstractPermutation} <: Group end
 
-#=
-Todo:
-    • Introduce dictionary that stores knowledge about the group, such as:
-        • isAbelian
-        • isSolvable
-        • isPolycyclic
-        • ...
-=#
-
-
 mutable struct PermutationGroup{P} <: AbstractPermutationGroup{P}
     S::Vector{P}
     order::BigInt
     stabilizerChain::PointStabilizer
+    knowledge::Dict{String, Union{Bool, Nothing}}(
+        "order"         => false,
+        "abelian"       => nothing,
+        "solveable"     => nothing,
+        "polycyclic"    => nothing,)
 
     PermutationGroup(S::AbstractVector{P}) where {P<:AbstractPermutation} = new{P}(S)
     PermutationGroup(S::AbstractVector{P}, order::Integer) where {P<:AbstractPermutation} = new{P}(S, order)
@@ -43,15 +38,17 @@ generators(G::PermutationGroup) = copy(G.S)
 
 function stabilizerChain(G::Group)
     if !isdefined(G, :stabilizerChain)
-        G.stabilizerChain = schreierSims(G)
-        G.order = order(G.stabilizerChain)
+        G.stabilizerChain = if knowsOrder(G) schreierSims(G, order(G)) else schreierSims(G) end
     end
-    return G.order
+    return G.stabilizerChain
 end
 
+knowsOrder(G::Group) = !(G.knowledge["order"] === nothing)
+
 function order(G::Group)
-    if !isdefined(G, :order)
+    if !knowsOrder(G)
         G.order = order(stabilizerChain(G))
+        G.knowledge["order"] = true
     end
     return G.order
 end
@@ -66,4 +63,18 @@ Base.one(G::AbstractPermutationGroup) = one(first(getUnsafeGenerators(G)))
 Base.eltype(::Type{<:AbstractPermutationGroup{P}}) where P = P
 
 Base.length(G::Group) =
-	order(G) > typemax(Int) ? typemax(Int) : order(Int, G)
+	order(G) > typemax(Int) ? typemax(Int) : convert(Int, order(G))
+
+function isAbelian(G::AbstractPermutationGroup)
+    if G.knowledge["abelian"] === nothing
+        for s in G.S
+            for t in G.S
+                if s^t ≠ t^s
+                    G.knowledge["abelian"] = false
+                end
+            end
+        end
+        G.knowledge["abelian"] = true
+    end
+    return G.knowledge["abelian"]
+end
