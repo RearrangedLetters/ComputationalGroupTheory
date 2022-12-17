@@ -4,19 +4,6 @@ function Base.:(∈)(g::AbstractPermutation, S::AbstractVector{<:AbstractPermuta
 	return sift(stabilizerChain(S), g) == one(Permutation([1]))
 end
 
-function normalClosure(S::AbstractVector{<:GroupElement}, U::AbstractVector{<:GroupElement})
-    N = copy(U)
-    for n in N
-        for s in S
-            γ = inv(s) * n * s
-            if γ ∉ N
-                push!(N, γ)
-            end
-        end
-    end
-    return N
-end
-
 function randomlyPickTwo(n::Integer)
     @assert n ≥ 2
     i = rand(1:n)
