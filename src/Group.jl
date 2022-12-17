@@ -1,3 +1,5 @@
+using Random
+
 abstract type Group end
 abstract type AbstractPermutationGroup{P<:AbstractPermutation} <: Group end
 
@@ -12,15 +14,16 @@ mutable struct PermutationGroup{P} <: AbstractPermutationGroup{P}
         "polycyclic"    => nothing,)
 
     PermutationGroup(S::AbstractVector{P}) where {P<:AbstractPermutation} = new{P}(S)
+    PermutationGroup(permutations::P...) where {P<:AbstractPermutation} = new{P}(collect(permutations))
     PermutationGroup(S::AbstractVector{P}, order::Integer) where {P<:AbstractPermutation} = new{P}(S, order)
 
     function PermutationGroup(S::AbstractVector{P}, stabilizerChain::PointStabilizer)
         new{P}(S, order(stabilizerChain), schreierSims(S))
     end
 
-    function PermutationGroup(S::AbstractVector{P<:AbstractPermutationGroup}, 
-                              order::BigInt, 
-                              stabilizerChain::PointStabilizer, 
+    function PermutationGroup(S::AbstractVector{P<:AbstractPermutationGroup},
+                              order::BigInt,
+                              stabilizerChain::PointStabilizer,
                               check=true)
         if check
             @assert order == order(stabilizerChain)
@@ -77,4 +80,49 @@ function isAbelian(G::AbstractPermutationGroup)
         G.knowledge["abelian"] = true
     end
     return G.knowledge["abelian"]
+end
+
+function basis(G::PermutationGroup)
+    stabilizerChain = stabilizerChain(G)
+    @assert !istrivial(stabilizerChain)
+    basis = Vector{typeof(point(stabilizerChain))}()
+    while !istrivial(stabilizerChain)
+        push!(basis, point(stabilizerChain))
+        stabilizerChain = stabilizer(stabilizerChain)
+    end
+    return basis
+end
+
+function permutationFromImages(stabilizerChain::PointStabilizer, images::AbstractVector{<:Integer})
+    @assert !istrivial(stabilizerChain)
+
+    g = one(generators(stabilizerChain)[1])
+    for point in images
+        y = point^inv(g)
+        r = transversal(stabilizerChain)[y]
+        g = r * g
+        stabilizerChain = stabilizer(stabilizerChain)
+
+        throw("Error, no such element exists!")
+    end
+
+    return g
+end
+
+function Random.rand(rng::AbstractRNG, X::Random.SamplerTrivial{<:Transversal})
+    T = X[]
+    return rand(rng, T.Ωᴳ)
+end
+
+function Random.rand(rng::AbstractRNG, X::Random.SamplerTrivial{<:PermutationGroup})
+    G = X[]
+    g = one(G)
+
+    stabilizerChain = stabilizerChain(G)
+    while !istrivial(stabilizerChain)
+        x = rand(rng, transversal(stabilizerChain))
+        g = transversal(stabilizerChain)[x] * g
+        stabilizerChain = stabilizer(stabilizerChain)
+    end
+    return g
 end

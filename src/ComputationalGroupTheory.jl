@@ -1,5 +1,7 @@
 module ComputationalGroupTheory
 
+using Random
+
 export Permutation, degree, orbit, transversal, transversalFactored, transversalSchreier, representative,
        @perm_str, schreierSims, order, PointStabilizer, Transversal, FactoredTransversal,
        TransversalTree, enumerateGroup, UnionFind, find, union, collectBlocks, nullspace,
@@ -14,5 +16,6 @@ include("Transversal.jl")
 # include("Backtrack.jl")
 include("UnionFind.jl")
 include("ExactMatrices.jl")
+include("Group.jl")
 
 end
