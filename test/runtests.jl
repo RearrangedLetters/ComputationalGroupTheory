@@ -9,4 +9,5 @@ using Test
 # include("BacktrackTest.jl")
 # include("UnionFindTest.jl")
 # include("ExactMatricesTest.jl")
-include("GroupTest.jl")
+# include("GroupTest.jl")
+include("SomePermutationGroups.jl")

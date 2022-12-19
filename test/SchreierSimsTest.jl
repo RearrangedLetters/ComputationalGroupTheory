@@ -87,6 +87,11 @@ end=#
     @test order(S₆) == 43252003274489856000
 end  =#
 
-@testset "SchreierSims_Benchmark_1" begin
+#= @testset "SchreierSims_Benchmark_1" begin
     @btime order(S₆)
+end =#
+
+@testset "SchreierSims_A4" begin
+    A₄ = [perm"(1, 2, 3)", perm"(2, 3, 4)"]
+    println(schreierSims(A₄))
 end

@@ -208,6 +208,17 @@ function Base.length(pointStabilizer::PointStabilizer)
     return count
 end
 
+function isAbelian(S::AbstractVector{Permutation})
+    for s in S
+        for t in S
+            if s^t ≠ t^s
+                return false
+            end
+        end
+    end
+    return true
+end
+
 #=
 struct StabilizerChain
     S::AbstractVector{AbstractVector{<:GroupElement}}

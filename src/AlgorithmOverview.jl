@@ -28,8 +28,8 @@ Chapter 03 - Stabilizer Chains
     • Elements in same coset (A)
     • Determine permutation action on the coset of a subgroup (A)
     • Pointwise Stabilizer (A)
-    • Enumerate g (A)
-    • Homomorphisms
+    • Enumerate G (A)
+    • Homomorphisms (N)
 
 Chapter 04 - Backtracking
     • Plain Backtrack (P)

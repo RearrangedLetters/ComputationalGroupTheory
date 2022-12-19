@@ -57,16 +57,20 @@ macro perm_str(s::String)  # todo: this can be optimized by calculating the imag
     subS = s
     while true
         m = match(r"(\((?<first>.{2,}?)\)+?)(?<rest>.*)", subS)
-        firstCycle = m[:first]
-        rest = m[:rest]
-        parsed = parse.(Int, split(firstCycle, ","))
-        permutationList = collect(1:maximum(parsed))
-        for i in eachindex(parsed)
-            permutationList[parsed[i]] = parsed[i % length(parsed) + 1]
+        if m ≠ nothing
+            firstCycle = m[:first]
+            rest = m[:rest]
+            parsed = parse.(Int, split(firstCycle, ","))
+            permutationList = collect(1:maximum(parsed))
+            for i in eachindex(parsed)
+                permutationList[parsed[i]] = parsed[i % length(parsed) + 1]
+            end
+            permutation = :(Permutation($permutationList) * $permutation)
+            subS = subS[length(firstCycle) + 2: length(subS)]
+            rest != "" || break
+        else
+            break
         end
-        permutation = :(Permutation($permutationList) * $permutation)
-        subS = subS[length(firstCycle) + 2: length(subS)]
-        rest != "" || break
     end
     return permutation
 end
