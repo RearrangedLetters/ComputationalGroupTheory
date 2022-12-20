@@ -60,6 +60,14 @@ mutable struct PointStabilizer{P<:AbstractPermutation}
     #= function PointStabilizer{P}(transversal::AbstractTransversal) where P
         new{P}(Vector{P}(), transversal)
     end =#
+
+    function PointStabilizer{P}(stabilizer::PointStabilizer) where P
+        new{P}(stabilizer.S, stabilizer.T, stabilizer.stabilizer)
+    end
+end
+
+function copy(stabilizer::PointStabilizer{P}) where P
+    return PointStabilizer{P}(stabilizer)
 end
 
 #= mutable struct PointStabilizer{P<:AbstractPermutation, R<:AbstractOrbit}
