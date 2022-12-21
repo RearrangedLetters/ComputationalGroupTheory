@@ -8,6 +8,7 @@ using Test
 # include("TransversalTest.jl")
 # include("BacktrackTest.jl")
 # include("UnionFindTest.jl")
-include("ExactMatricesTest.jl")
+# include("ExactMatricesTest.jl")
 # include("GroupTest.jl")
 # include("SmallPermutationGroupsTest.jl")
+include("AlphabetsTest.jl")
