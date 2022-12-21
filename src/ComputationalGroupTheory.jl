@@ -7,18 +7,19 @@ export Permutation, degree, orbit, transversal, transversalFactored, transversal
        TransversalTree, backtrackRecursive, backtrack, UnionFind, find, union, collectBlocks, nullspace,
        echelonize, isAbelian
 
-export Alphabet, setinverse!, hasinverse
-
-include("AbstractPermutation.jl")
-include("CyclePermutation.jl")
-include("Permutation.jl")
-include("OrbitTransversalSchreier.jl")
-include("SchreierSims.jl")
-include("Transversal.jl")
-include("Backtrack.jl")
-include("UnionFind.jl")
-include("ExactMatrices.jl")
+       
+include("PermutationGroups/AbstractPermutation.jl")
+include("PermutationGroups/CyclePermutation.jl")
+include("PermutationGroups/Permutation.jl")
+include("PermutationGroups/OrbitTransversalSchreier.jl")
+include("PermutationGroups/SchreierSims.jl")
+include("PermutationGroups/Transversal.jl")
+include("PermutationGroups/Backtrack.jl")
+include("Algorithms/UnionFind.jl")
+include("Cohomology/ExactLinearAlgebra.jl")
 # include("Group.jl")
-include("Alphabets.jl")
+
+include("FreeGroups/Alphabets.jl")
+export Alphabet, setinverse!, hasinverse
 
 end
