@@ -56,7 +56,7 @@ function echelonize(A::Matrix{Rational{T}}) where T<:Any
         for s in r:c
             if B[s, t] ≠ 0
                 B[s, :] = inv(B[s, t]) * B[s, :]
-                for k in append!(collect(1:(r - 1)), (s + 1):c)
+                for k ∈ append!(collect(1:(r - 1)), (s + 1):c)
                     B[k, :] = B[k, :] - B[k, t] * B[s, :]
                 end
                 if r ≠ s
@@ -102,5 +102,36 @@ function nullspace(A::Matrix{Rational{T}}) where T<:Any
         end
         push!(W, v)
     end
-    return copy(W.B)
+    return W.B
+end
+
+function Base.inv(A::Matrix{Rational{T}}) where T<:Any
+    d = size(A, 2)
+    A⁻¹ = Matrix{Rational{T}}(I, d, d)
+    flag = false
+    for c ∈ 1:d
+        for s ∈ c:d
+            if A[s, c] ≠ 0
+                M = inv(A[s, c])
+                A⁻¹[s, :] = M * I[s, :]
+                A[s, :] = M * A[s, :]
+                for t ∈ append!(collect(1:(c - 1)), (s + 1):d)
+                    A⁻¹ = A⁻¹[t, :] - A[t, c] * A⁻¹[s, :]
+                    A[t] = A[t] - A[t, c] * A[s, :]
+                end
+                if c ≠ s
+                    A⁻¹[s, :], A⁻¹[c, :] = A⁻¹[c, :], A⁻¹[s, :]
+                    A[s, :], A[c, :] = A[c, :], A[s, :]
+                end
+                flag = true
+            else
+                throw("Matrix $A not invertible!")
+            end
+            if flag
+                flag = false
+                break
+            end
+        end
+    end
+    return A⁻¹
 end

@@ -1,4 +1,5 @@
 using ComputationalGroupTheory
+using LinearAlgebra
 using Test
 
 @testset "Echelonize_1" begin
@@ -38,4 +39,11 @@ end
             @test transpose(k) * A == transpose(zero(A[1, :]))
         end
     end
+end
+
+@testset "Inverses_1" begin
+    A = [2 1; 6 4]
+    A = convert(Matrix{Rational{BigInt}}, A)
+    @test A * inv(A) == I
+    @test inv(A) * A == I
 end
