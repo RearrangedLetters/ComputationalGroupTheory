@@ -109,10 +109,10 @@ function Base.push!(pointStabilizer::PointStabilizer, g::AbstractPermutation)
     return pointStabilizer
 end
 
-function sift(pointStabilizer::PointStabilizer, g::AbstractPermutation)  # todo: should return more according to lecture (but not according to notebook)
+function sift(pointStabilizer::PointStabilizer, g::AbstractPermutation, L = AbstractPermutation[])
     # returns 1 iff g is in the point stabilizer
     if isempty(pointStabilizer) || isone(g)
-        return g
+        return g, L
     else
         x = point(pointStabilizer)
         δ = x^g
@@ -120,9 +120,9 @@ function sift(pointStabilizer::PointStabilizer, g::AbstractPermutation)  # todo:
         if δ ∈ T
             g = g * inv(T[δ])  # point in the stabilizer of x
             @assert x^g == x
-            return sift(stabilizer(pointStabilizer), g)
+            return sift(stabilizer(pointStabilizer), g, push!(T[δ]))
         else
-            return g
+            return g, L
         end
     end
 end
