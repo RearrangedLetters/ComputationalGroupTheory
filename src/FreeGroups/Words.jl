@@ -4,7 +4,7 @@ one(w::AbstractWord) = one(typeof(w))
 isone(w::AbstractWord) = iszero(length(w))
 
 function Base.:*(w::AbstractWord, v::AbstractWord)
-	return mul!(one(w), w, v)
+	return mul!(one(w), w, v)  # this is an interface function!
 end
 
 # resize!
@@ -43,7 +43,34 @@ function mul!(out::AbstractWord, w::AbstractWord, v::AbstractWord)
 	return out
 end
 
-function freeRewrite(w::Word)
-    nothing
+function freeRewriteV1(w::Word)
+    i = 1
+	@inbounds while i < length(w)
+		if iszero(w[i] * w[i + 1])
+			w = w[begin:(i - 1)] * w[(i + 2):end]  # this part is sub-optimal
+			i = max(1, i - 1)
+		end
+		i += 1
+	end
 end
 
+function freeRewriteV2(w::Word)
+	i = 1
+	l = length(w)
+	marked = trues(l)
+	@inbounds while i < l
+		if !marked[i]
+			i += 1
+			continue
+		end
+		if iszero(w[i] * w[i + 1])
+			marked[i:(i + 1)] .= false
+		end
+		while !marked[i] && i ≥ 1
+			i -= 1
+		end
+	end
+	return 
+end
+
+# Compare performance on words like x¹⁰⁰X¹⁰⁰, x⁵⁰X¹⁰⁰x⁵⁰, (x¹⁰X¹⁰)¹⁰

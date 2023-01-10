@@ -32,6 +32,10 @@ function Base.zero(x::Residue)
     return Residue(0, x.modulus)
 end
 
+function Base.zeros(length::Int, modulus)
+    return [Residue(0, modulus) for _ in 1:length]
+end
+
 function Base.:(==)(x::Residue, y::Residue)
     return x.residue == y.residue && x.modulus == y.modulus
 end

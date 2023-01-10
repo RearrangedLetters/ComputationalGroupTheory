@@ -1,7 +1,3 @@
-using ComputationalGroupTheory
-# using ExactLinearAlgebra
-using Test
-
 # include("PermutationGroups/PermutationTest.jl")
 # include("PermutationGroups/OrbitTransversalSchreierTest.jl")
 # include("PermutationGroups/SchreierSimsTest.jl")
@@ -11,5 +7,7 @@ using Test
 # include("Cohomology/ExactMatricesTest.jl")
 # include("PermutationGroups/GroupTest.jl")
 # include("SmallPermutationGroupsTest.jl")
-include("FreeGroups/AlphabetsTest.jl")
-include("Experimenting/ResidueTest.jl")
+# include("FreeGroups/AlphabetsTest.jl")
+# include("Experimenting/ResidueTest.jl")
+#include("Cohomology/CohomologyTest.jl")
+include("Algorithms/MachineLearning.jl/CNNTest.jl")

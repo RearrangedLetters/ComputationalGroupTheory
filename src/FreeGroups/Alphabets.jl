@@ -19,7 +19,10 @@ end
 Base.getindex(A::Alphabet{T}, letter::T) where T = A.positions[letter]  # return ordinal of letter, i.e. A[a] -> 1
 Base.getindex(A::Alphabet, index::Integer) = A.letters[index]  # return n-th letter
 
-setinverse!(A::Alphabet{T}, x::T, X::T) where T = A.inverses[x] = X  # set value of "inv" involution
+function setinverse!(A::Alphabet{T}, x::T, X::T) where T
+    A.inverses[x] = X  # set value of "inv" involution
+    A.inverses[X] = x  # set value of "inv" involution
+end
 
 Base.inv(A::Alphabet{T}, letter::T) where T = A.inverses[letter]  # the inverse of letter as T
 Base.inv(A::Alphabet{T}, index::Integer) where T = A.inverses[letters[index]]  # the ordinal of the inverse of 'n'-th letter
