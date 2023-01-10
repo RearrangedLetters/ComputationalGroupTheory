@@ -27,14 +27,14 @@ function inv!(out::AbstractWord, w::AbstractWord, A::Alphabet)
 	return out
 end
 
-#Implement abstract Vector interface
+# Implement abstract Vector interface
 Base.size(w::Word) = size(w.letters)
 Base.getindex(w::Word, i::Integer) = w.letters[i]
 Base.setindex!(w::Word, value, i::Int) = w.letters[i] = value
 
 function mul!(out::AbstractWord, w::AbstractWord, v::AbstractWord)
 	@assert out !== w  # out and w occupy different places in memory (actually out.letters and w.letters, not a problem because the structs are immutable)
-	# resize!(out, length(w)+length(v))
+	# resize!(out, length(w) + length(v))
 	# this is now correct but doesn't allow us to do
 	# mul!(a, a, b) override a with content of a * b
 	out = resize!(out, 0)
