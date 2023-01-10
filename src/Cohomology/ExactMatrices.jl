@@ -135,3 +135,12 @@ function Base.inv(A::Matrix{Rational{T}}) where T<:Any
     end
     return A⁻¹
 end
+
+function rowspace(A::Matrix{Rational{T}}) where T<:Any
+    A = echelonize(Base.copy(A))
+    l = 0
+    for r ∈ 1:(size(A)[1])
+        if isnothing(findfirst(x -> x ≠ 0, A[r, :])) l = r, break end
+    end
+    return A[1:(l - 1), :]
+end
