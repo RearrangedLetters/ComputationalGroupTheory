@@ -9,5 +9,6 @@
 # include("SmallPermutationGroupsTest.jl")
 # include("FreeGroups/AlphabetsTest.jl")
 # include("Experimenting/ResidueTest.jl")
-#include("Cohomology/CohomologyTest.jl")
-include("Algorithms/MachineLearning.jl/CNNTest.jl")
+# include("Cohomology/CohomologyTest.jl")
+# include("Algorithms/MachineLearning.jl/CNNTest.jl")
+include("FreeGroups/WordTest.jl")

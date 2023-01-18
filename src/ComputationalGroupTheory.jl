@@ -23,7 +23,7 @@ export nullspace, rowspace, echelonize, inv
 
 # include("Group.jl")
 
-include("FreeGroups/Alphabets.jl")
+include("FreeGroups/Alphabet.jl")
 export Alphabet, setinverse!, hasinverse
 
 include("Experimenting/Residue.jl")
@@ -32,7 +32,7 @@ export Residue, zero
 include("Cohomology/Cohomology.jl")
 export Z1, Z1!, B1, B1!
 
-include("Algorithms/MachineLearning/CNN.jl")
-export DenseLayer, Tanh, mean_square_loss, mean_square_loss_prime, forward, backward
+include("FreeGroups/Word.jl")
+export AbstractWord, Word, one, freeRewriteBV!, rewrite, @Σ_str, @w_str
 
 end
