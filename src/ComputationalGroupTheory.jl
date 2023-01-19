@@ -35,4 +35,7 @@ export Z1, Z1!, B1, B1!
 include("FreeGroups/Word.jl")
 export AbstractWord, Word, one, freeRewriteBV!, rewrite, @Σ_str, @w_str
 
+include("FreeGroups/Ordering.jl")
+export LenLex, lt
+
 end
