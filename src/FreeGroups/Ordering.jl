@@ -5,12 +5,12 @@ include("Word.jl")
 abstract type WordOrdering <: Ordering end
 
 struct LenLex{T} <: WordOrdering
-    A::Alphabet{T}
-    lexicographic_order::AbstractVector{T}
+    alphabet::Alphabet{T}
+    lexicographic_ordering::AbstractVector{T}
 end
 
 function lt(ordering::LenLex, lp::Integer, lq::Integer)
-    return ordering.lexicographic_order[lp] < ordering.lexicographic_order[lq]
+    return ordering.lexicographic_ordering[lp] < ordering.lexicographic_ordering[lq]
 end
 
 function lt(o::LenLex, p::AbstractWord, q::AbstractWord)

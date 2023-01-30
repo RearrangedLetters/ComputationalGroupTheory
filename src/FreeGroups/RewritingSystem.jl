@@ -37,14 +37,18 @@ function Base.iterate(rewritingSystem::RewritingSystem, i=1)
     return if i > length(rewritingSystem.rules) nothing else (rewritingSystem.rules[i], i + 1) end
 end
 
-function Base.empty(rws::RewritingSystem)
-    return RewritingSystem(empty(rws.rwrules), ordering(rws))
-end
-
+Base.empty(R::RewritingSystem) = RewritingSystem(ordering(R), empty(R.rules))
 ordering(R::RewritingSystem) = R.ordering
 alphabet(lenlex::LenLex) = lenlex.alphabet
 alphabet(R::RewritingSystem) = alphabet(ordering(R))
 rules(R::RewritingSystem) = R.rules
+
+function string_repr(r::Rule, A::Alphabet; lhspad = 2length(first(r)) - 1, rhspad = 2length(last(r)) - 1)
+    lhs, rhs = r
+    L = rpad(string_repr(lhs, A), lhspad)
+    R = lpad(string_repr(rhs, A), rhspad)
+    return "$L → $R"
+end
 
 function Base.show(io::IO, R::RewritingSystem)
     A = alphabet(R)
@@ -116,7 +120,83 @@ function isconfluent(R::RewritingSystem)
     return true
 end
 
-# Example from the lecture
+function Base.push!(R::RewritingSystem, v::AbstractWord, w::AbstractWord)
+    if v == w
+		return R
+	end
+    a = rewrite(v, R)
+    b = rewrite(w, R)
+    if a ≠ b
+        r = b > a ? b => a : a => b
+        push!(R.rules, r)
+		# A = alphabet(rws)
+        # @info "adding a new rule: $(string_repr(r, A))"
+    # else
+		# A = alphabet(rws)
+		# p_str = string_repr(p, A)
+        # q_str = string_repr(q, A)
+        # a_str = string_repr(a, A)
+        # @info "rewrites of $p_str and $q_str agree: $a_str"
+    end
+    return R
+end
+
+function resolve_overlaps!(R::RewritingSystem{W}, r₁::Rule, r₂::Rule) where {W}
+    p₁, q₁ = r₁
+    p₂, q₂ = r₂
+    for s in suffixes(p₁)
+        if isprefix(s, p₂)
+            a = p₁[begin:end-length(s)]
+            b = p₂[length(s)+1:end]
+            # word a*s*b rewrites in two possible ways:
+            # q₁*b and a*q₂
+            # we need to resolve this local failure to confluence:
+            push!(R, q₁ * b, a * q₂) # the correct rule is found in push!
+		elseif isprefix(p₂, s) # i.e. p₂ is a subword in p₁
+		# because rws may not be reduced
+            a = p₁[begin:end-length(s)]
+            b = p₁[length(a)+length(p₂)+1:end]
+            # word p₁ = a*p₂*b can be rewritten in two possible ways:
+            # q₁ and a*q₂*b
+            push!(R, q₁, a * q₂ * b)
+        end
+    end
+    return R
+end
+
+function reduce(R::RewritingSystem)
+    # @warn "reduce: not implemented yet"
+    return R
+end
+
+function knuthbendix_1(R::RewritingSystem, maxrules = 100)
+    S = empty(R)
+    for (r₁, r₂) ∈ rules(R)
+        push!(S, deepcopy(r₁), deepcopy(r₂))
+    end
+
+    for (i, r₁) in enumerate(rules(S))
+        for (j,r₂) in enumerate(rules(S))
+			if length(S.rules) > maxrules
+                @warn "Maximum number of rules has been exceeded.
+                       Try running knuthbendix with larger maxrules kwarg"
+				return S
+            end
+			# @info (i,j)
+            resolve_overlaps!(S, r₁, r₂)
+            r₁ == r₂ && break
+            resolve_overlaps!(S, r₂, r₁)
+        end
+    end
+    return reduce(S)
+end
+
+#= begin
+    r = x*X => one(x)
+    r isa Rule
+end =#
+
+# Example 1 from the lecture
 begin
     X = Alphabet(:x, :y, :z)
     O = LenLex(X, [:x, :y, :z])
@@ -126,7 +206,81 @@ begin
     isconfluent(R)
 end
 
+# Example 2 from the lecture
 begin
-    r = x*X => one(x)
-    r isa Rule
+    X = Alphabet(:x, :y, :z)
+    O = LenLex(X, [:x, :y, :z])
+    x, y, z = Word([X[1]]), Word([X[2]]), Word([X[3]])
+    ε = one(x)
+    R = RewritingSystem(O, [x * x => ε, y * z => ε, z * y => ε])
+    isconfluent(R)
+end
+
+# Example 3 from the lecture
+begin
+    X = Alphabet(:x, :y, :z)
+    O = LenLex(X, [:x, :y, :z])
+    x, y, z = Word([X[1]]), Word([X[2]]), Word([X[3]])
+    ε = one(x)
+    R = RewritingSystem(O, [x * y * x * y => ε, y * x * y * x => ε])
+    isconfluent(R)
+end
+
+# todo: the tests below don't work yet
+let X = Alphabet([:a, :b]), O = LenLex(X, [:a, :b])
+    a, b = (Word([i]) for i in 1:length(X))
+    ε = one(a)
+    R = RewritingSystem(O, [a^2 => ε, b^3 => ε, (a * b)^3 => ε])
+    reduce(knuthbendix_1(R))
+end
+
+let X = Alphabet([:a, :b]), O = LenLex(X, [:a, :b])
+    a, b = (Word([i]) for i in 1:length(X))
+    ε = one(a)
+    R = RewritingSystem([a^2 => ε, b^2 => ε, (a * b)^2 => ε], O)
+    knuthbendix_1(R)
+end
+
+let X = Alphabet([:a, :b]), O = LenLex(X, [:a, :b])
+    a, b = (Word([i]) for i in 1:length(X))
+    ε = one(a)
+    R = RewritingSystem([a^2 => ε, b^3 => ε, (a * b)^5 => ε], O)
+    RC = reduce(knuthbendix_1(R))
+end
+
+let X = Alphabet([:a, :b, :B]), O = LenLex(X, [:a, :b, :B])
+    a, b, B = (Word([i]) for i in 1:length(X))
+    ε = one(a)
+    R = RewritingSystem(
+        [
+            a^2 => ε,
+            b * B => ε,
+            B * b => ε,
+            b^3 => ε,
+            (a * b)^7 => ε,
+            (a * b * a * B)^4 => ε,
+        ],
+        O,
+    )
+    RC = reduce(knuthbendix_1(R))
+    @assert length(rules(RC)) == 40
+    RC
+end
+
+let X = Alphabet([:a, :b, :B]), O = LenLex(X, [:a, :b, :B])
+    a, b, B = (Word([i]) for i in 1:length(X))
+    ε = one(a)
+    R = RewritingSystem(
+        [
+            a^2 => ε,
+            b * B => ε,
+            B * b => ε,
+            b^3 => ε,
+            (a * b)^7 => ε,
+            (a * b * a * B)^1 => ε,
+        ],
+        O,
+    )
+    RC = reduce(knuthbendix_1(R; maxrules = 200))
+    RC
 end

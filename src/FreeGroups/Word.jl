@@ -47,6 +47,24 @@ Base.getindex(w::Word, i::Integer) = w.letters[i]
 Base.setindex!(w::Word, value, i::Int) = w.letters[i] = value
 typeof(::Word{T}) where {T} = T
 Base.length(w::Word) = length(w.letters)
+Base.:^(w::AbstractWord, n::Integer) = repeat(w, n)
+suffixes(w::AbstractWord) = (w[i:end] for i in firstindex(w):lastindex(w))
+
+function isprefix(v::Word, w::Word)
+	length(v) ≤ length(w) || return false
+	for i ∈ 1:length(v)
+		v[i] == w[i] || return false
+	end
+	return true
+end
+
+function issuffix(v::Word, w::Word)
+	length(v) <= length(w) || return false
+	for i ∈ 1:length(v)
+		v[i] == w[i] || return false
+	end
+	return true
+end
 
 function Base.popfirst!(w::Word)
 	return popfirst!(w.letters)
@@ -155,14 +173,6 @@ function rewrite!(v::Word, w::Word, A::Alphabet)
 		end
 	end
     return v
-end
-
-function issuffix(v::Word, w::Word)
-	length(v) <= length(w) || return false
-	for i ∈ 1:length(v)
-		v[i] == w[i] || return false
-	end
-	return true
 end
 
 # todo:
