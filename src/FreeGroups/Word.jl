@@ -18,6 +18,12 @@ function Base.resize!(w::Word, size::Integer)
 	return w
 end
 
+function Base.similar(w::AbstractWord, ::Type, dims::Base.Dims{1})
+	ans = one(w)
+	resize!(ans, first(dims))
+	return ans
+end
+
 function Base.append!(w::Word{T}, v::Word{T}) where {T}
 	Base.append!(w.letters, v.letters)
 	return w
@@ -41,6 +47,10 @@ Base.getindex(w::Word, i::Integer) = w.letters[i]
 Base.setindex!(w::Word, value, i::Int) = w.letters[i] = value
 typeof(::Word{T}) where {T} = T
 Base.length(w::Word) = length(w.letters)
+
+function Base.popfirst!(w::Word)
+	return popfirst!(w.letters)
+end
 
 function mul!(out::AbstractWord, w::AbstractWord, v::AbstractWord)
 	@assert out !== w  # out and w occupy different places in memory (actually out.letters and w.letters, not a problem because the structs are immutable)
@@ -145,6 +155,14 @@ function rewrite!(v::Word, w::Word, A::Alphabet)
 		end
 	end
     return v
+end
+
+function issuffix(v::Word, w::Word)
+	length(v) <= length(w) || return false
+	for i ∈ 1:length(v)
+		v[i] == w[i] || return false
+	end
+	return true
 end
 
 # todo:
