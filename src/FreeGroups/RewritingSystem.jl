@@ -165,7 +165,7 @@ function resolve_overlaps!(R::RewritingSystem{W}, r₁::Rule, r₂::Rule) where 
 end
 
 function reduce(R::RewritingSystem)
-    # @warn "reduce: not implemented yet"
+    @warn "reduce: not implemented yet"
     return R
 end
 
@@ -281,6 +281,6 @@ let X = Alphabet([:a, :b, :B]), O = LenLex(X, [:a, :b, :B])
         ],
         O,
     )
-    RC = reduce(knuthbendix_1(R; maxrules = 200))
+    RC = reduce(knuthbendix_1(R, maxrules = 200))
     RC
 end

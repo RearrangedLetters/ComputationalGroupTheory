@@ -38,4 +38,7 @@ export AbstractWord, Word, one, freeRewriteBV!, rewrite, @Σ_str, @w_str
 include("FreeGroups/Ordering.jl")
 export LenLex, lt
 
+include("Property (T)/MatrixGroup.jl")
+export MatrixGroup
+
 end
