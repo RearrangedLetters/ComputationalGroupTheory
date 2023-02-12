@@ -1,3 +1,5 @@
+include("../PermutationGroups/Group.jl")
+
 mutable struct MatrixGroup{T} <: Group
     S::Vector{Matrix{T}}
 

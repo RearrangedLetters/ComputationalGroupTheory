@@ -47,6 +47,7 @@ Base.getindex(w::Word, i::Integer) = w.letters[i]
 Base.setindex!(w::Word, value, i::Int) = w.letters[i] = value
 typeof(::Word{T}) where {T} = T
 Base.length(w::Word) = length(w.letters)
+getcyclicindex(w::Word, i::Integer) = w.letters[mod1(i, length(w))]
 Base.:^(w::AbstractWord, n::Integer) = repeat(w, n)
 suffixes(w::AbstractWord) = (w[i:end] for i in firstindex(w):lastindex(w))
 
@@ -184,8 +185,13 @@ macro Σ_str(string::String)
 	return :(Alphabet(sort!(collect(Set(string.(collect($string)))))))
 end
 
-macro w_str(string::String)
+macro stringword_str(string::String)
 	return :(Word(string.(collect($string))))
+end
+
+macro word_str(string::String)
+	letters = [Symbol(s) for s in string]
+	return :(Word($letters))
 end
 
 macro inv(A::Alphabet, string::String)

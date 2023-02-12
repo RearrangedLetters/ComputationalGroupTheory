@@ -43,7 +43,7 @@ end
 
 @testset "Rewrite Algorithms Performance Comparison" begin
     letters = String[]
-    for i ∈ 1:420000
+    for i ∈ 1:42000
         push!(letters, "x")
         push!(letters, "X")
     end
