@@ -18,6 +18,11 @@ begin
     @test cyclicword == word"abbaabba"
 end
 
+"""
+Todo: Introduce abstract Automorphism type that defines an interface with a single function:
+apply(w::Word). The rewriting stuff should happen internally.
+"""
+
 struct WhiteheadAutomorphisms
     rewritingSystem::RewritingSystem
     w::Word
@@ -65,7 +70,7 @@ end
     for word_length ∈ 2:6
         word = v^word_length
         Wᵢ = WhiteheadAutomorphisms(rewritingSystem, word)
-        length_W = 0
+        length_Wᵢ = 0
         for _ in Wᵢ length_Wᵢ += 1 end
         @test length_Wᵢ == factorial(word_length) * big(2)^word_length
     end
@@ -108,4 +113,45 @@ function whitehead_naive!(rewritingSystem::RewritingSystem{O, Word{T}},
     Base.length(v) == Base.length(w) || return nothing
     G = automorphism_graph(A, Base.length(v))
     return path(G, v, w)
+end
+
+struct NielsenAutomorphisms
+    rewritingSystem::RewritingSystem
+    w::Word
+
+    function NielsenAutomorphisms(rewritingSystem::RewritingSystem, w::Word)
+        new(rewritingSystem, w)
+    end
+end
+
+iterate(N::NielsenAutomorphisms, state)
+    i, j = state
+    if i ≤ length(N.w)
+        x = N.w[i]
+        v = Word([x])
+        for y ∈ N.w
+            y ≠ x || break
+            j ≤ 5 || return iterate(N, (i + 1, 1))
+
+            w = Word(if j == 1 [inv(x)]
+                 elseif j == 2 [y, x]
+                 elseif j == 3 [inv(y), x]
+                 elseif j == 4 [x, y]
+                 elseif j == 5 [x, inv(y)]
+                 end)
+        end
+    end
+    return nothing
+end
+
+@testset "Count Nielsen Automorphisms" begin
+    v = word"a"
+
+    for word_length ∈ 1:6
+        word = v^word_length
+        Nᵢ = NielsenAutomorphisms(rewritingSystem, word)
+        length_Nᵢ = 0
+        for _ in Nᵢ length_Nᵢ += 1 end
+        @test length_Nᵢ == 5 * word_length^2
+    end
 end
