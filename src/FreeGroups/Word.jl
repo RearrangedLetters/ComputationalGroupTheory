@@ -9,7 +9,7 @@ function Base.:*(w::AbstractWord, v::AbstractWord)
 	return mul!(one(w), w, v)  # this is an interface function
 end
 
-mutable struct Word{T} <: AbstractWord{T}
+mutable struct Word{T} <: AbstractWord{T}  # todo: mutable is probably not necessary here
 	letters::Vector{T}
 end
 
@@ -51,6 +51,8 @@ getcyclicindex(w::Word, i::Integer) = w.letters[mod1(i, length(w))]
 Base.:^(w::AbstractWord, n::Integer) = repeat(w, n)
 suffixes(w::AbstractWord) = (w[i:end] for i in firstindex(w):lastindex(w))
 
+push!(w::Word{T}, l::T) where {T} = push!(w.letters, l)
+
 function isprefix(v::Word, w::Word)
 	length(v) ≤ length(w) || return false
 	for i ∈ 1:length(v)
@@ -80,6 +82,35 @@ function mul!(out::AbstractWord, w::AbstractWord, v::AbstractWord)
 	out = append!(out, w)  # this should work as appending of w::AbstractVector to out.letters::Vector{T} is defined
 	out = append!(out, v)
 	return out
+end
+
+"""
+Replace all occurences of the letter l in w with the word v
+"""
+function replace_letter!(w::Word{T}, x::T, v::Word{T}) where {T}
+	return replace_all!(w, [x], [v])
+end
+
+"""
+Sequentially replace 
+"""
+function replace_all!(w::Word{T}, X::Vector{T}, V::Vector{Word{T}}) where {T}
+	@assert length(X) == length(V)
+	letters = Vector{T}()
+	resize!(letters, length(w))
+	for l ∈ w
+		break_outer = false
+		for (i, x) ∈ enumerate(X)
+			if l == x
+				append!(letters, V[i])
+				(break_outer = true) && break
+			end
+		end
+		break_outer && break
+		push!(letters, l)
+	end
+	w.letters = letters
+	return w
 end
 
 function Base.show(io::IO, ::MIME"text/plain", w::AbstractWord)

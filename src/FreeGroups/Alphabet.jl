@@ -13,12 +13,22 @@ struct Alphabet{T}
         positions = Dict{T, Int}(letters[i] => i for i ∈ 1:length(letters))
         new{T}(collect(letters), positions, Dict{T, T}())
     end
+
+    function Alphabet{T}() where {T}
+        new{T}(Vector{T}(), Dict{T, Int}(), Dict{T, T}())
+    end
 end
 
 # for implementing the error have a look at transversal where NotInOrbit Exception is defined
 
 Base.getindex(A::Alphabet{T}, letter::T) where {T} = A.positions[letter]  # return ordinal of letter, i.e. A[a] -> 1
 Base.getindex(A::Alphabet, index::Integer) = A.letters[index]  # return n-th letter
+
+function push!(A::Alphabet{T}, letter::T) where {T}
+    push!(A.letters)
+    position[A.letters[last]] = lastindex(A.letters)
+    return A
+end
 
 function setinverse!(A::Alphabet{T}, x::T, X::T) where {T}
     A.inverses[x] = X

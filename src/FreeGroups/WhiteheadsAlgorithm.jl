@@ -18,10 +18,33 @@ begin
     @test cyclicword == word"abbaabba"
 end
 
-"""
-Todo: Introduce abstract Automorphism type that defines an interface with a single function:
-apply(w::Word). The rewriting stuff should happen internally.
-"""
+struct FreeGroupAutomorphism{T}
+    basis::Alphabet{T}
+    images::Vector{Word{T}}
+
+    function FreeGroupAutomorphism(basis::Alphabet{T}, images::Vector{Word{T}}) where {T}
+        @assert length(basis) == length(images)
+        new{T}(basis, images)
+    end
+
+    function FreeGroupAutomorphism{T}() where {T}
+        new{T}(Alphabet{T}(), Vector{Word{T}}())
+    end
+end
+
+function apply!(σ::FreeGroupAutomorphism{T}, w::Word{T}) where {T}
+    return replace_all!(w, σ.basis, σ.images)
+end
+
+function push!(σ::FreeGroupAutomorphism{T}, replacement::Pair{T, Word{T}})
+    letter, word = replacement
+    push!(σ.basis, letter)
+    push!(σ.images, word)
+    return σ
+end
+
+(σ::FreeGroupAutomorphism{T})(w::Word{T}) where {T} = apply!(σ, deepcopy(w))
+
 
 struct WhiteheadAutomorphisms
     rewritingSystem::RewritingSystem
@@ -124,7 +147,7 @@ struct NielsenAutomorphisms
     end
 end
 
-iterate(N::NielsenAutomorphisms, state)
+function iterate(N::NielsenAutomorphisms, state)
     i, j = state
     if i ≤ length(N.w)
         x = N.w[i]
