@@ -251,3 +251,23 @@ function isirreducible_naive(A::Alphabet, w::Word)
     τ = whitehead_naive(A, w, A[1])
     return isnothing(τ) ? false : length(τ) > 0
 end
+
+@testset "Irreducible elements in ℤ" begin
+    A = Alphabet(:𝟙)
+    setinverse!(A, :𝟙, :𝟙⁻)
+
+    @test freeRewriteBV!(word"𝟙𝟙⁻", A) == word""
+
+    """
+    Now F₁ ≅ ⟨𝟙⟩ ≅ ℤ, and there are exactly two Irreducible elements,
+    namely 𝟙 ≙ 1 and -1 ≙ 𝟙⁻.
+    """
+    @test isirreducible_naive(A, word"𝟙")
+    @test isirreducible_naive(A, word"𝟙⁻")
+
+    """
+    Now we assert that neither 2 ≙ 𝟙𝟙 nor -2 ≙ 𝟙⁻𝟙⁻ are irreducible.
+    """
+    @test !isirreducible_naive(A, word"𝟙𝟙")
+    @test !isirreducible_naive(A, word"𝟙⁻𝟙⁻")
+end
