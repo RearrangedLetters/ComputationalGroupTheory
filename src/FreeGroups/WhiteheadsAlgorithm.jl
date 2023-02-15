@@ -2,7 +2,6 @@ include("Word.jl")
 include("Alphabet.jl")
 using Test
 using Combinatorics
-using Graphs
 
 """
 The type Word can be used like a cyclic word by using getcyclicindex instead
@@ -32,35 +31,36 @@ struct FreeGroupAutomorphism{T}
     end
 end
 
-function apply!(σ::FreeGroupAutomorphism{T}, w::Word{T}) where {T}
-    return replace_all!(w, σ.basis, σ.images)
-end
+basis(σ::FreeGroupAutomorphism) = σ.basis
+images(σ::FreeGroupAutomorphism) = σ.images
 
-function push!(σ::FreeGroupAutomorphism{T}, replacement::Pair{T, Word{T}})
-    letter, word = replacement
-    push!(σ.basis, letter)
-    push!(σ.images, word)
-    return σ
+function apply!(σ::FreeGroupAutomorphism{T}, w::Word{T}) where {T}
+    return replace_all!(w, basis(σ), images(σ))
 end
 
 (σ::FreeGroupAutomorphism{T})(w::Word{T}) where {T} = apply!(σ, deepcopy(w))
 
+function push!(σ::FreeGroupAutomorphism{T}, replacement::Pair{T, Word{T}})
+    letter, word = replacement
+    push!(basis(σ), letter)
+    push!(images(σ), word)
+    return σ
+end
 
 struct WhiteheadAutomorphisms
-    rewritingSystem::RewritingSystem
+    X::Alphabet
     w::Word
     wordlength::Int
     number_of_permutations::BigInt
-    number_of_subsets::BigInt
 
-    function WhiteheadAutomorphisms(rewritingSystem::RewritingSystem, w::Word)
+    function WhiteheadAutomorphisms(X::Alphabet, w::Word)
         wordlength = Base.length(w)
-        new(rewritingSystem, w, wordlength, factorial(big(wordlength)), big(2)^wordlength)
+        new(X, w, wordlength, factorial(big(wordlength)))
     end
 end
 
 function iterate(W::WhiteheadAutomorphisms)
-    return Base.empty(W.rewritingSystem), (1, iterate(powerset(W.w.letters)))
+    return FreeGroupAutomorphism(X, letters(X)), (1, iterate(powerset(W.w.letters)))
 end
 
 function iterate(W::WhiteheadAutomorphisms, state)
@@ -68,12 +68,13 @@ function iterate(W::WhiteheadAutomorphisms, state)
     i, powerset, j = state
     powerset_iterator = iterate(powerset, j)
     if i ≤ W.number_of_permutations
-        σ = nthperm(letters(A), i)
+        σ_images = nthperm(letters(A), i)
         if !isnothing(powerset_iterator)
             subset_indices, _ = powerset_iterator
             for index ∈ subset_indices
-                push!(rules, (Word(A[index]), Word(σ[index])))
+                σ_images[index] = inv(σ_images[index])
             end
+            return FreeGroupAutomorphism(X, σ_images)
         else
             return iterate(W, (i + 1, powerset(letters(W.w.letters))))
         end
@@ -99,29 +100,30 @@ end
     end
 end
 
-function whitehead_reduce!(rewritingSystem::RewritingSystem, w::Word{T}) where {T}
-    for σ ∈ WhiteheadAutomorphisms(rewritingSystem, w)
-        w′ = rewrite!(one(w), w, σ)
+function whitehead_reduce!(X::Alphabet{T}, w::Word{T}) where {T}
+    for σ ∈ WhiteheadAutomorphisms(X, w)
+        w′ = rewrite(σ(w), X)
         Base.length(w′) < Base.length(w) && return w′, σ, true
     end
     return w, nothing, false
 end
 
-function minimize!(w::Word, rewritingSystem::RewritingSystem)
+function minimize!(X::Alphabet{T}, w::Word{T}) where {T}
     has_been_shortend_once = false
+    σ = FreeGroupAutomorphism{T}()
     while true
-        w, _, has_been_shortened = whitehead_reduce!(rewritingSystem, w)
+        w, _, has_been_shortened = whitehead_reduce!(X, w)
         has_been_shortened ? has_been_shortend_once = true : break
     end
     return w, σ, has_been_shortend_once
 end
 
-struct NielsenAutomorphisms
-    rewritingSystem::RewritingSystem
-    w::Word
+struct NielsenAutomorphisms{T}
+    X::Alphabet{T}
+    w::Word{T}
 
-    function NielsenAutomorphisms(rewritingSystem::RewritingSystem, w::Word)
-        new(rewritingSystem, w)
+    function NielsenAutomorphisms(X::Alphabet{T}, w::Word{T}) where {T}
+        new(X, w)
     end
 end
 
@@ -228,13 +230,11 @@ it exists, defines a desired automorphism.
 The output is actually a list of automorphisms that need to be applied in
 reverse order.
 """
-function whitehead_naive!(rewritingSystem::RewritingSystem{O, Word{T}},
-                          v::Word{T},
-                          w::Word{T}) where {O, T}
+function whitehead_naive!(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
     # For now we assume v and w to be cyclicly reduced
 
-    v, σv, v_has_been_shortened = minimize!(v, rewritingSystem)
-    w, σw, w_has_been_shortened = minimize!(w, rewritingSystem)
+    v, _, _ = minimize!(X, v)
+    w, _, _ = minimize!(X, w)
 
     # If v and w have different lengths, there cannot exit an automorphism
     # carrying one to the other.
@@ -243,12 +243,11 @@ function whitehead_naive!(rewritingSystem::RewritingSystem{O, Word{T}},
     return connect_depthfirst(G, v, w)
 end
 
-function whitehead_naive(rewritingSystem::RewritingSystem{O, Word{T}},
-                         v::Word{T},
-                         w::Word{T}) where {O, T}
-    return whitehead_naive!(rewritingSystem, copy(v), copy(w))
+function whitehead_naive(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
+    return whitehead_naive!(X, copy(v), copy(w))
 end
 
-function isirreducible_naive(X::Alphabet, w::Word)
-    return length(whitehead_naive(X, w, X[1])) > 0
+function isirreducible_naive(A::Alphabet, w::Word)
+    τ = whitehead_naive(A, w, A[1])
+    return isnothing(τ) ? false : length(τ) > 0
 end
