@@ -49,13 +49,13 @@ end
 struct WhiteheadAutomorphisms
     rewritingSystem::RewritingSystem
     w::Word
-    word_length::Int
+    wordlength::Int
     number_of_permutations::BigInt
     number_of_subsets::BigInt
 
     function WhiteheadAutomorphisms(rewritingSystem::RewritingSystem, w::Word)
-        word_length = Base.length(w)
-        new(rewritingSystem, w, word_length, factorial(big(word_length)), big(2)^word_length)
+        wordlength = Base.length(w)
+        new(rewritingSystem, w, wordlength, factorial(big(wordlength)), big(2)^wordlength)
     end
 end
 
@@ -90,12 +90,12 @@ end
 
     v = word"a"
 
-    for word_length ∈ 2:6
-        word = v^word_length
+    for wordlength ∈ 2:6
+        word = v^wordlength
         Wᵢ = WhiteheadAutomorphisms(rewritingSystem, word)
         length_Wᵢ = 0
         for _ in Wᵢ length_Wᵢ += 1 end
-        @test length_Wᵢ == factorial(word_length) * big(2)^word_length
+        @test length_Wᵢ == factorial(wordlength) * big(2)^wordlength
     end
 end
 
@@ -114,28 +114,6 @@ function minimize!(w::Word, rewritingSystem::RewritingSystem)
         has_been_shortened ? has_been_shortend_once = true : break
     end
     return w, σ, has_been_shortend_once
-end
-
-
-"""
-Our first implementation is based on the description by Lyndon and Schupp
-in their book Combinatorial Group Theory, specifically Proposition 4.19.
-This version attempts to applied Whitehead transformations until the input
-words no longer can be shortened.
-"""
-function whitehead_naive!(rewritingSystem::RewritingSystem{O, Word{T}},
-                          v::Word{T},
-                          w::Word{T}) where {O, T}
-    # For now we assume v and w to be cyclicly reduced
-
-    v, σv, v_has_been_shortened = minimize!(v, rewritingSystem)
-    w, σw, w_has_been_shortened = minimize!(w, rewritingSystem)
-
-    # If v and w have different lengths, there cannot exit an automorphism
-    # carrying one to the other.
-    Base.length(v) == Base.length(w) || return nothing
-    G = automorphism_graph(A, Base.length(v))
-    return path(G, v, w)
 end
 
 struct NielsenAutomorphisms
@@ -162,6 +140,7 @@ function iterate(N::NielsenAutomorphisms, state)
                  elseif j == 4 [x, y]
                  elseif j == 5 [x, inv(y)]
                  end)
+            return w
         end
     end
     return nothing
@@ -170,11 +149,106 @@ end
 @testset "Count Nielsen Automorphisms" begin
     v = word"a"
 
-    for word_length ∈ 1:6
-        word = v^word_length
+    for wordlength ∈ 1:6
+        word = v^wordlength
         Nᵢ = NielsenAutomorphisms(rewritingSystem, word)
         length_Nᵢ = 0
         for _ in Nᵢ length_Nᵢ += 1 end
-        @test length_Nᵢ == 5 * word_length^2
+        @test length_Nᵢ == 5 * wordlength^2
     end
+end
+
+struct AutomorphismGraph{T}
+    A::Alphabet{T}
+    vertices::Vector{Word{T}}
+    vertex_indices::Dict{Word{T}, Int}
+    edges::Vector{Pair(FreeGroupAutomorphism{T}, Vector{Word{T}})}
+
+    function AutomorphismGraph{T}(A::Alphabet{T}, wordlength::Int) where {T}
+        numvertices = big(length(A))^wordlength
+        resize!(vertices, numvertices)
+        resize!(vertex_indices, numvertices)
+        resize!(edges, numvertices)
+
+        i = 1
+        for w ∈ enumeratewords(A, wordlength)
+            push!(vertices, Word(collect(w)))
+            push!(vertex_indices, (w, i))
+            i += 1
+        end
+
+        for v ∈ vertices
+            for σ ∈ WhiteheadAutomorphisms(rws, v)
+                t = σ(v)
+                iₜ = findfirst(x -> x == t, vertices)
+                push!(edges[iₜ], σ => t)
+            end
+        end
+    end
+end
+
+getindex(G::AutomorphismGraph{T}, w::Word{T}) where {T} = G.vertex_indices[w]
+order(G::AutomorphismGraph) = length(G.vertices)
+edges(G::AutomorphismGraph) = G.edges
+edges(G::AutomorphismGraph, s::Word{T}) = G.edges[G[s]]
+
+"""
+Use a depth first search to find a path from s to t. The reverse composition of the
+automorphisms in τ then satisfies s ↦ t. This algorithm only needs additional memory linear in the
+length of the path, but potentially finds longer paths than a shortest path algorithm.
+However, a shortest path algorithm needs exponential additional memory. Whichever
+version has the more desirable behavior needs to be determined experimentally.
+
+This algorithm technically modifies its inputs, however these are only auxillary data
+structures and should never be passed by a user. The first three inputs aren't being
+modified.
+"""
+function connect_depthfirst(G::AutomorphismGraph{T}, s::Word{T}, t::Word{T},
+                            visited=falses(order(G)), τ=FreeGroupAutomorphism[])
+    s == t && return τ
+
+    for (σ, v) ∈ edges(G, s)
+        iᵥ = G[w]
+        if !visited[iᵥ]
+            visited[iᵥ] = true
+            push!(τ, σ)
+            return connect_depthfirst(G, v, t, visited, τ)
+        end
+    end
+
+    return τ
+end
+
+"""
+Our first implementation is based on the description by Lyndon and Schupp
+in their book Combinatorial Group Theory, specifically Proposition 4.19.
+This version attempts to applied Whitehead transformations until the input
+words no longer can be shortened. Then a path in the automorphism graph, if
+it exists, defines a desired automorphism.
+The output is actually a list of automorphisms that need to be applied in
+reverse order.
+"""
+function whitehead_naive!(rewritingSystem::RewritingSystem{O, Word{T}},
+                          v::Word{T},
+                          w::Word{T}) where {O, T}
+    # For now we assume v and w to be cyclicly reduced
+
+    v, σv, v_has_been_shortened = minimize!(v, rewritingSystem)
+    w, σw, w_has_been_shortened = minimize!(w, rewritingSystem)
+
+    # If v and w have different lengths, there cannot exit an automorphism
+    # carrying one to the other.
+    Base.length(v) == Base.length(w) || return nothing
+    G = automorphism_graph(A, Base.length(v))
+    return connect_depthfirst(G, v, w)
+end
+
+function whitehead_naive(rewritingSystem::RewritingSystem{O, Word{T}},
+                         v::Word{T},
+                         w::Word{T}) where {O, T}
+    return whitehead_naive!(rewritingSystem, copy(v), copy(w))
+end
+
+function isirreducible_naive(X::Alphabet, w::Word)
+    return length(whitehead_naive(X, w, X[1])) > 0
 end

@@ -50,3 +50,7 @@ Base.length(A) = length(A.letters)
 function Base.show(io::IO, A::Alphabet{T}) where {T}
 	print(io, "Σ = ", Tuple(A.letters))
 end
+
+enumeratewords(A::Alphabet, wordlength)
+    collect(Iterators.product(ntuple(_ -> A.letters, wordlength)...))
+end
