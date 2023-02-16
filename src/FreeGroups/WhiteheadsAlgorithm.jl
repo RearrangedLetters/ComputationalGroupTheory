@@ -64,11 +64,11 @@ function iterate(W::WhiteheadAutomorphisms)
 end
 
 function iterate(W::WhiteheadAutomorphisms, state)
-    A = alphabet(W.rewritingSystem)
+    X = alphabet(W.rewritingSystem)
     i, powerset, j = state
     powerset_iterator = iterate(powerset, j)
     if i ≤ W.number_of_permutations
-        σ_images = nthperm(letters(A), i)
+        σ_images = nthperm(letters(X), i)
         if !isnothing(powerset_iterator)
             subset_indices, _ = powerset_iterator
             for index ∈ subset_indices
@@ -161,19 +161,19 @@ end
 end
 
 struct AutomorphismGraph{T}
-    A::Alphabet{T}
+    X::Alphabet{T}
     vertices::Vector{Word{T}}
     vertex_indices::Dict{Word{T}, Int}
     edges::Vector{Pair(FreeGroupAutomorphism{T}, Vector{Word{T}})}
 
-    function AutomorphismGraph{T}(A::Alphabet{T}, wordlength::Int) where {T}
-        numvertices = big(length(A))^wordlength
+    function AutomorphismGraph{T}(X::Alphabet{T}, wordlength::Int) where {T}
+        numvertices = big(length(X))^wordlength
         resize!(vertices, numvertices)
         resize!(vertex_indices, numvertices)
         resize!(edges, numvertices)
 
         i = 1
-        for w ∈ enumeratewords(A, wordlength)
+        for w ∈ enumeratewords(X, wordlength)
             push!(vertices, Word(collect(w)))
             push!(vertex_indices, (w, i))
             i += 1
@@ -239,35 +239,35 @@ function whitehead_naive!(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
     # If v and w have different lengths, there cannot exit an automorphism
     # carrying one to the other.
     Base.length(v) == Base.length(w) || return nothing
-    G = automorphism_graph(A, Base.length(v))
-    return connect_depthfirst(G, v, w)
+    G = automorphism_graph(X, Base.length(v))
+    return connect_depthfirst(X, v, w)
 end
 
 function whitehead_naive(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
     return whitehead_naive!(X, copy(v), copy(w))
 end
 
-function isirreducible_naive(A::Alphabet, w::Word)
-    τ = whitehead_naive(A, w, A[1])
+function isprimitive_naive(X::Alphabet, w::Word)
+    τ = whitehead_naive(X, w, X[1])
     return isnothing(τ) ? false : length(τ) > 0
 end
 
-@testset "Irreducible elements in ℤ" begin
-    A = Alphabet(:𝟙)
-    setinverse!(A, :𝟙, :𝟙⁻)
+@testset "Primitive elements in ℤ" begin
+    X = Alphabet(:𝟙)
+    setinverse!(X, :𝟙, :𝟙⁻)
 
-    @test freeRewriteBV!(word"𝟙𝟙⁻", A) == word""
+    @test freeRewriteBV!(word"𝟙𝟙⁻", X) == word""
 
     """
     Now F₁ ≅ ⟨𝟙⟩ ≅ ℤ, and there are exactly two Irreducible elements,
     namely 𝟙 ≙ 1 and -1 ≙ 𝟙⁻.
     """
-    @test isirreducible_naive(A, word"𝟙")
-    @test isirreducible_naive(A, word"𝟙⁻")
+    @test isprimitive_naive(X, word"𝟙")
+    @test isprimitive_naive(X, word"𝟙⁻")
 
     """
     Now we assert that neither 2 ≙ 𝟙𝟙 nor -2 ≙ 𝟙⁻𝟙⁻ are irreducible.
     """
-    @test !isirreducible_naive(A, word"𝟙𝟙")
-    @test !isirreducible_naive(A, word"𝟙⁻𝟙⁻")
+    @test !isprimitive_naive(X, word"𝟙𝟙")
+    @test !isprimitive_naive(X, word"𝟙⁻𝟙⁻")
 end
