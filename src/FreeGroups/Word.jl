@@ -11,6 +11,18 @@ end
 
 mutable struct Word{T} <: AbstractWord{T}  # todo: mutable is probably not necessary here
 	letters::Vector{T}
+
+	function Word(letters::Vector{T}) where {T}
+		new{T}(letters)
+	end
+
+	function Word(letter::T) where {T}
+		new{T}([letter])
+	end
+
+	function Word{T}() where {T}
+		new{T}(Vector{T}())
+	end
 end
 
 function Base.resize!(w::Word, size::Integer)

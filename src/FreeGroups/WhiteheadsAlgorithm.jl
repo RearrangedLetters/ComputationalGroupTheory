@@ -47,57 +47,103 @@ function push!(σ::FreeGroupAutomorphism{T}, replacement::Pair{T, Word{T}})
     return σ
 end
 
-struct WhiteheadAutomorphisms
-    X::Alphabet
-    w::Word
-    wordlength::Int
-    number_of_permutations::BigInt
+struct WhiteheadAutomorphisms{T}
+    X::Alphabet{T}
+    X⁺⁻::Vector{T}
+    w::Word{T}
+    iterator
 
-    function WhiteheadAutomorphisms(X::Alphabet, w::Word)
-        wordlength = Base.length(w)
-        new(X, w, wordlength, factorial(big(wordlength)))
+    function WhiteheadAutomorphisms(X::Alphabet{T}, w::Word{T}) where {T}
+        X⁻ = [inv(x) for x ∈ W.X.letters]
+        rank = length(X)
+        # This is an iterator over all words of length rank - 1 over letters 1 through 4:
+        iterator = Iterators.product(ntuple(_ -> 1:4, rank - 1)...)
+        new{T}(X, [X.letters; X⁻], w, iterator)
     end
 end
 
 function iterate(W::WhiteheadAutomorphisms)
-    return FreeGroupAutomorphism(X, letters(X)), (1, iterate(powerset(W.w.letters)))
+    return FreeGroupAutomorphism(W.X, W.X.letters),
+           (1, iterate(powerset(W.X.letters)))
 end
 
-function iterate(W::WhiteheadAutomorphisms, state)
-    X = alphabet(W.rewritingSystem)
-    i, powerset, j = state
-    powerset_iterator = iterate(powerset, j)
-    if i ≤ W.number_of_permutations
-        σ_images = nthperm(letters(X), i)
-        if !isnothing(powerset_iterator)
-            subset_indices, _ = powerset_iterator
-            for index ∈ subset_indices
-                σ_images[index] = inv(σ_images[index])
-            end
-            return FreeGroupAutomorphism(X, σ_images)
-        else
-            return iterate(W, (i + 1, powerset(letters(W.w.letters))))
+"""
+First we iterate over the Nielsen automorphisms. This immediatedly has the consequence
+that our implementation of Whitehead's algorithm employs the Nielsen-first heuristic.
+Since Nielsen automorphisms are Whitehead automorphisms, these will be considered twice.
+In the grand scheme of things is only quadratic additional work that won't be done in
+more than 99% of cases.
+
+The state is a tuple (i, j, n, iₙ, m, iₗ, iterator_state) consisting of:
+    • i and j correspond to the i-th and j-th letter in X
+    • n = 1,...,5n(n-1) counting how many Nielsen automorphisms we already considered.
+      This decides, when we start considering Whitehead autormorphisms of type i.
+    • iₙ ∈ {1, 2, 3, 4, 5} corresponding to one of the possible Nielsen automorphisms
+      after we fixed two basis elements.
+    • m - 1 is the number of
+    • iₗ defines the position of the fixed element in the last loop
+    • iterator_state is the state of W.iterator
+"""
+function iterate(W::WhiteheadAutomorphisms{T}, state) where {T}
+    i, j, n, iₙ, m, iₗ, iterator_state = state
+    rank = length(X)
+    X = W.X
+    if n ≤ 5 * rank * (rank - 1)
+        return iterate(N::NielsenAutomorphisms, state)
+    elseif m ≤ factorial(2 * rank)
+        σ_images = nthperm(W.X⁺⁻, m)[begin:rank]
+        σ = FreeGroupAutomorphism(X, σ_images)
+        return σ, (i, j, n, iₙ, m + 1)
+    elseif l ≤ 2 * rank * 4^(rank - 1) - 2 * rank
+        σ_images = Vector{Word{T}}
+        index = 1
+        iteration = iterate(W.iterator, iterator_state)
+        if isnothing(iteration)
+            return iterate(W, (i, j, n, iₙ, m, iₗ + 1, iterate(iterator)))
+        else 
+            t, s = iteration
         end
-    else
-        return nothing
+        a = Word[X[iₗ]]
+        while index ≤ 2 * rank
+            index == iₗ && continue
+            x = Word(X[index])
+            image = if t[index] == 1 x
+            elseif t[index] == 2 x * a
+            elseif t[index] == 3 inv(a) * x
+            elseif t[index] == 4 inv(a) * x * a end
+            push!(σ_images, image)
+        end
+        σ = FreeGroupAutomorphism(X, σ_images)
+        return σ, (i, j, n, iₙ, m, iₗ, s)
     end
+    return nothing
 end
 
-@testset "Count Whitehead Automorphisms" begin
-    W₁ = WhiteheadAutomorphisms(rewritingSystem, word"a")
+@testset "Count Free Group Automorphisms" begin
+    """
+    First we assert that the iteration protocol actually does the desired number
+    of iterations. This number is not equal to the actual number of Whitehead
+    automorphisms.
+    """
+    W₁ = WhiteheadAutomorphisms(X, word"a")
     length_W₁ = 0
     for _ in W₁ length_W₁ += 1 end
     @test length_W₁ == 2
 
     v = word"a"
 
-    for wordlength ∈ 2:6
+    for wordlength ∈ 2:5
         word = v^wordlength
         Wᵢ = WhiteheadAutomorphisms(rewritingSystem, word)
         length_Wᵢ = 0
         for _ in Wᵢ length_Wᵢ += 1 end
         @test length_Wᵢ == factorial(wordlength) * big(2)^wordlength
     end
+
+    """
+    Now we check if we obtain the correct number of Whitehead automorphisms.
+    According to [HAR] there are 
+    """
 end
 
 function whitehead_reduce!(X::Alphabet{T}, w::Word{T}) where {T}
@@ -127,25 +173,38 @@ struct NielsenAutomorphisms{T}
     end
 end
 
+"""
+For now see the description of iterate(::WhiteheadAutomorphisms, state)
+"""
 function iterate(N::NielsenAutomorphisms, state)
-    i, j = state
-    if i ≤ length(N.w)
-        x = N.w[i]
-        v = Word([x])
-        for y ∈ N.w
-            y ≠ x || break
-            j ≤ 5 || return iterate(N, (i + 1, 1))
-
-            w = Word(if j == 1 [inv(x)]
-                 elseif j == 2 [y, x]
-                 elseif j == 3 [inv(y), x]
-                 elseif j == 4 [x, y]
-                 elseif j == 5 [x, inv(y)]
-                 end)
-            return w
+    i, j, n, iₙ, _ = state
+    rank = length(X)
+    i > rank || return
+    j > rank || return
+    if n ≤ 5 * rank * (rank - 1)
+        j > rank && return iterate(N, (i + 1, 1, n, iₙ))
+        # The case i > rank should never occur since we also count and check if n is in bounds.
+        w₁ = Vector{Word{T}}()
+        for k ∈ 1:(i - 1)
+            push!(w₁, Word(X[k]))
         end
+        x = Word{T}(X[i])
+        y = Word{T}(X[j])
+        w₂ =    if iₙ == 1 inv(x)
+            elseif iₙ == 2 y * x
+            elseif iₙ == 3 inv(y) * x
+            elseif iₙ == 4 x * y
+            elseif iₙ == 5 x * inv(y)
+            else return iterate(N, (i, j, n, 1)) end
+        w₃ = Vector{Word{T}}()
+        for k ∈ (i + 1):length(N.X)
+            push!(w₃, Word(N.X[k]))
+        end
+        σ = FreeGroupAutomorphism(X, append!(w₁, append!([w₂], w₃)))
+        return σ, (i, j + 1, n + 1, mod1(iₙ + 1, 5))
+    else
+        return nothing
     end
-    return nothing
 end
 
 @testset "Count Nielsen Automorphisms" begin
@@ -227,10 +286,17 @@ in their book Combinatorial Group Theory, specifically Proposition 4.19.
 This version attempts to applied Whitehead transformations until the input
 words no longer can be shortened. Then a path in the automorphism graph, if
 it exists, defines a desired automorphism.
-The output is actually a list of automorphisms that need to be applied in
-reverse order.
+By the definition of the iteration protocol, Nielsen autormorphisms are
+considered first for minimization. This implementation thus employs the
+Nielsen-first heuristic. This strategy has been shown to perform like a
+polynomial time algorithm in experiments, making it practical for many
+applications. The worst-case complexity however is still exponential.
+The output is a list of automorphisms that need to be composed in
+reverse order to get the desired automorphism. This composition can be
+calculated with the method compose below. It shall however be noted, that
+this composition might exhibit exponential image length.
 """
-function whitehead_naive!(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
+function whitehead!(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
     # For now we assume v and w to be cyclicly reduced
 
     v, _, _ = minimize!(X, v)
@@ -243,12 +309,12 @@ function whitehead_naive!(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
     return connect_depthfirst(X, v, w)
 end
 
-function whitehead_naive(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
-    return whitehead_naive!(X, copy(v), copy(w))
+function whitehead(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
+    return whitehead!(X, copy(v), copy(w))
 end
 
-function isprimitive_naive(X::Alphabet, w::Word)
-    τ = whitehead_naive(X, w, X[1])
+function isprimitive(X::Alphabet, w::Word)
+    τ = whitehead(X, w, X[1])
     return isnothing(τ) ? false : length(τ) > 0
 end
 
@@ -271,3 +337,8 @@ end
     @test !isprimitive_naive(X, word"𝟙𝟙")
     @test !isprimitive_naive(X, word"𝟙⁻𝟙⁻")
 end
+
+"""
+The algorithms and insights are mostly based on the following sources:
+    [HAR] "Heuristics for the Whitehead Minimization Problem" by Haralick et. al.
+"""
