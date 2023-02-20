@@ -55,7 +55,11 @@ end
 Base.length(A) = length(A.letters)
 
 function Base.show(io::IO, A::Alphabet{T}) where {T}
-	print(io, "Σ = ", Tuple(A.letters))
+	print(io, "Alphabet = ", Tuple(A.letters))
+    #= println("Alphabet with ", length(A), " letters of type ", T, ":")
+    for a ∈ A
+        println(a)
+    end =#
 end
 
 function enumeratewords(A::Alphabet, wordlength)

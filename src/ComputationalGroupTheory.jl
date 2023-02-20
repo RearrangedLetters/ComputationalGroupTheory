@@ -43,6 +43,7 @@ include("Property (T)/MatrixGroup.jl")
 export MatrixGroup
 
 include("FreeGroups/WhiteheadsAlgorithm.jl")
-export WhiteheadAutomorphisms, NielsenAutomorphisms, length
+export WhiteheadAutomorphisms, NielsenAutomorphisms, FreeGroupAutomorphism,
+       length, nielsen
 
 end

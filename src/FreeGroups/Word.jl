@@ -20,6 +20,11 @@ mutable struct Word{T} <: AbstractWord{T}  # todo: mutable is probably not neces
 		new{T}([letter])
 	end
 
+	function Word{S}(letter::T) where {S, T}
+		@assert S == T
+		new{T}([letter])
+	end
+
 	function Word{T}() where {T}
 		new{T}(Vector{T}())
 	end
@@ -48,7 +53,7 @@ function inv!(out::AbstractWord, w::AbstractWord, A::Alphabet)
 	resize!(out, length(w))
 	# for letter in reverse(w) allocate vector containing reversed w
 	for (i, letter) in enumerate(Iterators.reverse(w))
-		out[i] = inv(letter, A)
+		out[i] = inv(A, letter)
 	end
 	return out
 end
@@ -62,6 +67,10 @@ Base.length(w::Word) = length(w.letters)
 getcyclicindex(w::Word, i::Integer) = w.letters[mod1(i, length(w))]
 Base.:^(w::AbstractWord, n::Integer) = repeat(w, n)
 suffixes(w::AbstractWord) = (w[i:end] for i in firstindex(w):lastindex(w))
+function Base.:(==)(letter::T, w::AbstractWord{T}) where {T}
+	return length(w) == 1 ? (return w[1] == letter) : false
+end
+Base.:(==)(w::AbstractWord{T}, letter::T) where {T} = (letter == w)
 
 Base.push!(w::Word{T}, l::T) where {T} = push!(w.letters, l)
 
@@ -109,17 +118,14 @@ Sequentially replace
 function replace_all!(w::Word{T}, X::Vector{T}, V::Vector{Word{T}}) where {T}
 	@assert length(X) == length(V)
 	letters = Vector{T}()
-	resize!(letters, length(w))
 	for l ∈ w
 		break_outer = false
 		for (i, x) ∈ enumerate(X)
 			if l == x
-				append!(letters, V[i])
-				(break_outer = true) && break
+				append!(letters, V[i].letters)
+				break
 			end
 		end
-		break_outer && break
-		push!(letters, l)
 	end
 	w.letters = letters
 	return w
@@ -141,7 +147,7 @@ end
 
 function string_repr(w::AbstractWord, A::Alphabet)
     if isone(w)
-        return sprint(show, w)
+        return sprint(show, w)  # todo: sprint is probably wrong?
     else
         return join((A[idx] for idx in w), '·')
     end
@@ -233,6 +239,7 @@ macro stringword_str(string::String)
 end
 
 macro word_str(string::String)
+	length(string) == 0 && return Symbol("")
 	letters = [Symbol(s) for s in string]
 	return :(Word($letters))
 end
