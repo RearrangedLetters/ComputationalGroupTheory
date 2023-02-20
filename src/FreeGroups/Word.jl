@@ -63,7 +63,7 @@ getcyclicindex(w::Word, i::Integer) = w.letters[mod1(i, length(w))]
 Base.:^(w::AbstractWord, n::Integer) = repeat(w, n)
 suffixes(w::AbstractWord) = (w[i:end] for i in firstindex(w):lastindex(w))
 
-push!(w::Word{T}, l::T) where {T} = push!(w.letters, l)
+Base.push!(w::Word{T}, l::T) where {T} = push!(w.letters, l)
 
 function isprefix(v::Word, w::Word)
 	length(v) ≤ length(w) || return false

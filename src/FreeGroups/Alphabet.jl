@@ -19,12 +19,19 @@ struct Alphabet{T}
     end
 end
 
-# for implementing the error have a look at transversal where NotInOrbit Exception is defined
+function Alphabet(letters::Vector{T}, inverses::Vector{T}) where {T}
+    A = Alphabet([letters; inverses])
+    @assert length(letters) == length(inverses)
+    for i ∈ 1:length(letters)
+        setinverse!(A, letters[i], inverses[i])
+    end
+    return A
+end
 
 Base.getindex(A::Alphabet{T}, letter::T) where {T} = A.positions[letter]  # return ordinal of letter, i.e. A[a] -> 1
 Base.getindex(A::Alphabet, index::Integer) = A.letters[index]  # return n-th letter
 
-function push!(A::Alphabet{T}, letter::T) where {T}
+function Base.push!(A::Alphabet{T}, letter::T) where {T}
     push!(A.letters)
     position[A.letters[last]] = lastindex(A.letters)
     return A
@@ -51,6 +58,20 @@ function Base.show(io::IO, A::Alphabet{T}) where {T}
 	print(io, "Σ = ", Tuple(A.letters))
 end
 
-enumeratewords(A::Alphabet, wordlength)
+function enumeratewords(A::Alphabet, wordlength)
     collect(Iterators.product(ntuple(_ -> A.letters, wordlength)...))
+end
+
+issymmetric(A::Alphabet) = all([hasinverse(A, l) for l ∈ A])
+
+#=
+Expects a string with all lowercase characters. Each character then is taken
+as a Symbol and it's inverse is set to be the uppercase version.
+This string macro is compatible with the word macro in Word.jl
+=#
+macro symmetric_alphabet_str(string::String)
+    @assert all([islowercase(s) for s ∈ string])
+    letters  = [Symbol(s) for s ∈ string]
+    inverses = [Symbol(s) for s ∈ uppercase(string)]
+    return :(Alphabet($letters, $inverses))
 end

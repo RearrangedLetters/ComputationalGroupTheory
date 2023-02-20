@@ -8,4 +8,4 @@ mutable struct MatrixGroup{T} <: Group
     end
 end
 
-one(G::MatrixGroup{T}) where {T} = one(Matrix{T})
+Base.one(G::MatrixGroup{T}) where {T} = one(Matrix{T})

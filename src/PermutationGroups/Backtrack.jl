@@ -29,7 +29,7 @@ abstract type AbstractBacktrackTree{V} <: AbstractTree{V} end
 struct TransversalTree{V} <: AbstractBacktrackTree{V}
     𝒞::PointStabilizer{}
 
-    function TransversalTree(S::AbstractVector{<:AbstractPermutation}) where V
+    function TransversalTree(S::AbstractVector{<:AbstractPermutation})
         𝒞 = schreierSims(S)
         new{eltype(first(𝒞.T))}(𝒞)
     end

@@ -5,26 +5,30 @@ abstract type AbstractPermutationGroup{P<:AbstractPermutation} <: Group end
 
 mutable struct PermutationGroup{P} <: AbstractPermutationGroup{P}
     S::Vector{P}
+    knowledge::Dict{String, Union{Bool, Nothing}}
     order::BigInt
     stabilizerChain::PointStabilizer
-    knowledge::Dict{String, Union{Bool, Nothing}}(
-        "order"         => false,
-        "abelian"       => nothing,
-        "solveable"     => nothing,
-        "polycyclic"    => nothing,)
 
-    PermutationGroup(S::AbstractVector{P}) where {P<:AbstractPermutation} = new{P}(S)
-    PermutationGroup(permutations::P...) where {P<:AbstractPermutation} = new{P}(collect(permutations))
-    PermutationGroup(S::AbstractVector{P}, order::Integer) where {P<:AbstractPermutation} = new{P}(S, order)
-
-    function PermutationGroup(S::AbstractVector{P}, stabilizerChain::PointStabilizer)
-        new{P}(S, order(stabilizerChain), schreierSims(S))
+    PermutationGroup(S::AbstractVector{P}) where {P<:AbstractPermutation} = new{P}(S, initialize_knowledge())
+    PermutationGroup(permutations::P...) where {P<:AbstractPermutation} = new{P}(collect(permutations), initialize_knowledge())
+    function PermutationGroup(S::AbstractVector{P}, order::Integer) where {P<:AbstractPermutation} 
+        knowledge = initialize_knowledge()
+        knowledge["order"] = order
+        new{P}(S, knowledge, order)
     end
 
-    function PermutationGroup(S::AbstractVector{P<:AbstractPermutationGroup},
+    function PermutationGroup(S::AbstractVector{P}, stabilizerChain::PointStabilizer) where {P<:AbstractPermutation}
+        knowledge = initialize_knowledge()
+        knowledge["order"] = order
+        new{P}(S, knowledge, order(stabilizerChain), schreierSims(S))
+    end
+
+    function PermutationGroup(S::AbstractVector{P},
                               order::BigInt,
                               stabilizerChain::PointStabilizer,
-                              check=true)
+                              check=true) where {P<:AbstractPermutation}
+        knowledge = initialize_knowledge()
+        knowledge["order"] = order
         if check
             @assert order == order(stabilizerChain)
             @assert all(S) do s
@@ -32,8 +36,15 @@ mutable struct PermutationGroup{P} <: AbstractPermutationGroup{P}
                 isone(r)
             end
         end
-        new{P}(S, order, stabilizerChain)
+        new{P}(S, knowledge, order, stabilizerChain)
     end
+end
+
+function initialize_knowledge()
+    return Dict("order"         => false,
+                "abelian"       => nothing,
+                "solveable"     => nothing,
+                "polycyclic"    => nothing,)
 end
 
 unsafeGenerators(G::PermutationGroup) = G.S
@@ -150,3 +161,4 @@ function commutatorSubgroup(G::PermutationGroup)
     return [a * b * inv(a) * inv(b)
                 for a ∈ unsafeGenerators(G)
                 for b ∈ unsafeGenerators(G)]
+end

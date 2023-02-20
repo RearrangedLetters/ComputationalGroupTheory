@@ -12,4 +12,5 @@
 # include("Cohomology/CohomologyTest.jl")
 # include("Algorithms/MachineLearning.jl/CNNTest.jl")
 # include("FreeGroups/WordTest.jl")
-include("FreeGroups/OrderingTest.jl")
+# include("FreeGroups/OrderingTest.jl")
+include("FreeGroups/WhiteheadAlgorithmTest.jl")

@@ -24,7 +24,7 @@ export nullspace, rowspace, echelonize, inv
 # include("Group.jl")
 
 include("FreeGroups/Alphabet.jl")
-export Alphabet, setinverse!, hasinverse
+export Alphabet, setinverse!, hasinverse, enumeratewords, @symmetric_alphabet_str
 
 include("Experimenting/Residue.jl")
 export Residue, zero
@@ -41,5 +41,8 @@ export LenLex, lt
 
 include("Property (T)/MatrixGroup.jl")
 export MatrixGroup
+
+include("FreeGroups/WhiteheadsAlgorithm.jl")
+export WhiteheadAutomorphisms, NielsenAutomorphisms, length
 
 end
