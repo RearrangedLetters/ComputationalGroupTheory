@@ -230,10 +230,6 @@ end
 #	  This could be implemented efficiently by starting with an empty BufferWord.
 #	• isone() check is probably necessary
 
-macro Σ_str(string::String)
-	return :(Alphabet(sort!(collect(Set(string.(collect($string)))))))
-end
-
 macro stringword_str(string::String)
 	return :(Word(string.(collect($string))))
 end
@@ -244,10 +240,35 @@ macro word_str(string::String)
 	return :(Word($letters))
 end
 
-macro inv(A::Alphabet, string::String)
-	@assert length(string) == 2
-	show(A)
-	return :(setinverse!($A, $string[1], $string[2]))
+struct Words{T}
+    A::Alphabet{T}
+    wordlength::Int
+	iterator
+
+    function Words(A::Alphabet{T}, wordlength::Int) where {T}
+		iterator = Iterators.product(ntuple(_ -> A.letters, wordlength)...)
+        new{T}(A, wordlength, iterator)
+    end
+end
+
+function Base.iterate(words::Words)
+	iteration = iterate(words.iterator)
+	if isnothing(iteration)
+		return nothing
+	else
+		w, initialstate = iteration
+		return Word(collect(w)), initialstate
+	end
+end
+
+function Base.iterate(words::Words, state)
+    iteration = iterate(words.iterator, state)
+	if isnothing(iteration)
+		return nothing
+	else
+		w, nextstate = iteration
+		return Word(collect(w)), nextstate
+	end
 end
 
 #= begin

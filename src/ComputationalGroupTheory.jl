@@ -33,8 +33,8 @@ include("Cohomology/Cohomology.jl")
 export Z1, Z1!, B1, B1!
 
 include("FreeGroups/Word.jl")
-export AbstractWord, Word, one, freeRewriteBV!, rewrite, @Σ_str, @stringword_str,
-       @word_str
+export AbstractWord, Word, Words, one, freeRewriteBV!, rewrite, @Σ_str, @stringword_str,
+       @word_str, @alphabet_str, iterate
 
 include("FreeGroups/Ordering.jl")
 export LenLex, lt
@@ -42,8 +42,13 @@ export LenLex, lt
 include("Property (T)/MatrixGroup.jl")
 export MatrixGroup
 
+include("FreeGroups/WhiteheadAutomorphisms.jl")
+export WhiteheadAutomorphisms, NielsenAutomorphisms, nielsen
+
+include("FreeGroups/FreeGroupAutomorphism.jl")
+export FreeGroupAutomorphism
+
 include("FreeGroups/WhiteheadsAlgorithm.jl")
-export WhiteheadAutomorphisms, NielsenAutomorphisms, FreeGroupAutomorphism,
-       length, nielsen
+export whitehead, isprimitive, AutomorphismGraph
 
 end

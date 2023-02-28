@@ -13,4 +13,6 @@
 # include("Algorithms/MachineLearning.jl/CNNTest.jl")
 # include("FreeGroups/WordTest.jl")
 # include("FreeGroups/OrderingTest.jl")
-include("FreeGroups/WhiteheadAlgorithmTest.jl")
+# include("FreeGroups/FreeGroupAutomorphismTest.jl")
+include("FreeGroups/WhiteheadAutomorphismsTest.jl")
+# include("FreeGroups/WhiteheadAlgorithmTest.jl")

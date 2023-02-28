@@ -79,3 +79,17 @@ macro symmetric_alphabet_str(string::String)
     inverses = [Symbol(s) for s ∈ uppercase(string)]
     return :(Alphabet($letters, $inverses))
 end
+
+macro Σ_str(string::String)
+	return :(Alphabet(sort!(collect(Set(string.(collect($string)))))))
+end
+
+macro alphabet_str(string::String)
+    return :(Alphabet([Symbol(s) for s ∈ $string]))
+end
+
+macro inv(A::Alphabet, string::String)
+	@assert length(string) == 2
+	show(A)
+	return :(setinverse!($A, $string[1], $string[2]))
+end
