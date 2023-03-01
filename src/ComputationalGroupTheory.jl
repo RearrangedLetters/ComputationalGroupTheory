@@ -42,13 +42,10 @@ export LenLex, lt
 include("Property (T)/MatrixGroup.jl")
 export MatrixGroup
 
-include("FreeGroups/WhiteheadAutomorphisms.jl")
-export WhiteheadAutomorphisms, NielsenAutomorphisms, nielsen
-
 include("FreeGroups/FreeGroupAutomorphism.jl")
-export FreeGroupAutomorphism
+export FreeGroupAutomorphism, WhiteheadAutomorphisms, NielsenAutomorphisms
 
 include("FreeGroups/WhiteheadsAlgorithm.jl")
-export whitehead, isprimitive, AutomorphismGraph
+export whitehead, isprimitive, AutomorphismGraph, edges
 
 end

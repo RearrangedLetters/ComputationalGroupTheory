@@ -50,3 +50,85 @@ using Test
     @test σ(word"CCCC") == word"BBBB"
     @test σ(word"BCBC") == word"CBCB"
 end
+
+@testset "Verify NielsenAutomorphisms (1)" begin
+    X = Alphabet(:𝟙, :𝟙⁻)
+    setinverse!(X, :𝟙, :𝟙⁻)
+
+    automorphisms = Vector{FreeGroupAutomorphism{Symbol}}()
+    for σ ∈ NielsenAutomorphisms(X) push!(automorphisms, σ) end
+    @test length(automorphisms) == 1
+    σ = first(automorphisms)
+    @test σ(:𝟙)  == :𝟙⁻
+    @test σ(:𝟙⁻) == :𝟙
+end
+
+@testset "Verify NielsenAutomorphisms (2)" begin
+    X = symmetric_alphabet"ab"
+    N = NielsenAutomorphisms(X)
+
+    automorphisms = Vector{FreeGroupAutomorphism{Symbol}}()
+    for σ ∈ N
+        push!(automorphisms, σ)
+    end
+    
+    @test length(automorphisms) == length(N)
+    @test FreeGroupAutomorphism(X, [word"A",  word"b"]) ∈ automorphisms
+    @test FreeGroupAutomorphism(X, [word"ba", word"b"]) ∈ automorphisms
+    @test FreeGroupAutomorphism(X, [word"Ba", word"b"]) ∈ automorphisms
+    @test FreeGroupAutomorphism(X, [word"ab", word"b"]) ∈ automorphisms
+    @test FreeGroupAutomorphism(X, [word"aB", word"b"]) ∈ automorphisms
+    
+    @test FreeGroupAutomorphism(X, [word"a", word"B"])  ∈ automorphisms
+    @test FreeGroupAutomorphism(X, [word"a", word"ab"]) ∈ automorphisms
+    @test FreeGroupAutomorphism(X, [word"a", word"Ab"]) ∈ automorphisms
+    @test FreeGroupAutomorphism(X, [word"a", word"ba"]) ∈ automorphisms
+    @test FreeGroupAutomorphism(X, [word"a", word"bA"]) ∈ automorphisms
+end
+
+@testset "Verify NielsenAutomorphisms (3)" begin
+    X₁ = symmetric_alphabet"abc"
+    X₂ = symmetric_alphabet"abcdefg"
+    N₁ = NielsenAutomorphisms(X₁)
+    N₂ = NielsenAutomorphisms(X₂)
+
+    automorphisms₁ = Vector{FreeGroupAutomorphism{Symbol}}()
+    for σ ∈ N₁
+        push!(automorphisms₁, σ)
+    end
+    @test length(automorphisms₁) == length(N₁)
+
+    automorphisms₂ = Vector{FreeGroupAutomorphism{Symbol}}()
+    for σ ∈ N₂
+        push!(automorphisms₂, σ)
+    end
+    @test length(automorphisms₂) == length(N₂)
+end
+
+#= @testset "Count Free Group Automorphisms 1" begin
+#=
+First we assert that the iteration protocol actually does the desired number
+of iterations. This number is not equal to the actual number of Whitehead
+automorphisms because the Nielsen automorphisms are covered twice.
+=#
+X₁ = symmetric_alphabet"a"
+number_of_automorphisms = length(WhiteheadAutomorphisms(X₁))
+@test number_of_automorphisms == 2
+whitehead_automorphisms = collect(WhiteheadAutomorphisms(X₁))
+id = whitehead_automorphisms[1]
+σ  = whitehead_automorphisms[2]
+@test id == FreeGroupAutomorphism(X₁, [word"a", word"A"])
+@test σ  == FreeGroupAutomorphism(X₁, [word"A", word"a"])
+end =#
+
+#= @testset "Count Free Group Automorphisms (2)" begin
+    X = symmetric_alphabet"a"
+    @info length(WhiteheadAutomorphisms(X))
+    W = Vector{FreeGroupAutomorphism{Symbol}}()
+    for σ ∈ WhiteheadAutomorphisms(X)
+        push!(W, σ)
+        @info σ
+    end
+    
+end =#
+

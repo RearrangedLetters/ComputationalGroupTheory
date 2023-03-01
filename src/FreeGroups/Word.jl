@@ -20,6 +20,10 @@ mutable struct Word{T} <: AbstractWord{T}  # todo: mutable is probably not neces
 		new{T}([letter])
 	end
 
+	function Word(letters::T...) where {T}
+		new{T}(collect(letters))
+	end
+
 	function Word{S}(letter::T) where {S, T}
 		@assert S == T
 		new{T}([letter])

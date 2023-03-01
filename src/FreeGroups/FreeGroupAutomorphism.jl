@@ -61,41 +61,87 @@ struct WhiteheadAutomorphisms{T}
     end
 end
 
-struct NielsenAutormorphisms{T}
+struct NielsenAutomorphisms{T}
     X::Alphabet{T}
 
-    function NielsenAutormorphisms(X::Alphabet{T}) where {T}
+    function NielsenAutomorphisms(X::Alphabet{T}) where {T}
         @assert issymmetric(X)
+        @assert length(X) > 0
         new{T}(X)
     end
 end
 
+function Base.length(N::NielsenAutomorphisms)
+    n = convert(Int, length(N.X) / 2)
+    return 5n * (n - 1)
+end
+
+@enum NielsenType begin
+    INVERT=1
+    LEFT_MULTIPLY=2
+    LEFT_MULTIPLY_INVERSE=3
+    RIGHT_MULTIPLY=4
+    RIGHT_MULTIPLY_INVERSE=5
+end
+
+function Base.iterate(N::NielsenAutomorphisms)
+    if convert(Int, length(N.X) / 2) == 1
+        return FreeGroupAutomorphism(N.X, [Word(inv(N.X, N.X[1]))]), nothing
+    end
+    nielsen_state = iterate(instances(NielsenType))
+    return iterate(N, (1, 1, nielsen_state))
+end
+
 #=
-Constructs the non-trivial Nielsen automorphisms where x = X[i] is mapped to
-one of the five (indicated by iₙ) possible values where y = X[j].
+If i == j, then nielsentype is INVERT, otherwise we have x = X[i] ≠ X[j] = y
+and iterate over the NielsenTypes.
 =#
-function nielsen(A::Alphabet{T}, i::Int, j::Int, iₙ::Int) where {T}
-    if i == j @assert iₙ == 1 end
-    # if iₙ == 1 @assert i == j end
-    X = A.letters[1:convert(Int, length(A) / 2)]
+function Base.iterate(N::NielsenAutomorphisms{T}, state) where {T}
+    X = N.X
+    n = convert(Int, length(X) / 2)
+    if isnothing(state) return nothing end
+    i, j, nielsenstate = state
+    if i == j == n return nothing end
+    if isnothing(nielsenstate)
+        if j < n
+            return iterate(N, (i, j + 1, iterate(instances(NielsenType))))
+        elseif i < n
+            return iterate(N, (i + 1, 1, iterate(instances(NielsenType))))
+        else
+            return nothing
+        end
+    end
+    nielsentype, next_nielsenstate = nielsenstate
     w₁ = Vector{Word{T}}()
-    for k ∈ 1:(i - 1) push!(w₁, Word(X[k])) end  # todo: use copy
+    for k ∈ 1:(i - 1) push!(w₁, Word(X[k])) end  # todo: shouldn't subindexing work?
     x = Word{T}(X[i])
-    if iₙ == 1
-        w₂ = inv(x, A)
+    if i == j && nielsentype ≠ INVERT
+        if j < n
+            return iterate(N, (i, j + 1, nielsenstate))
+        elseif i < n
+            return iterate(N, (i + 1, 1, nielsenstate))
+        else
+            return nothing
+        end
+    end
+    if nielsentype == INVERT
+        w₂ = inv(x, X)
     else
         y = Word{T}(X[j])
-        w₂ =    if iₙ == 2 y * x
-            elseif iₙ == 3 inv(y, A) * x
-            elseif iₙ == 4 x * y
-            elseif iₙ == 5 x * inv(y, A)
-            else return nothing end
+        w₂ =    if nielsentype == LEFT_MULTIPLY          y * x
+            elseif nielsentype == LEFT_MULTIPLY_INVERSE  inv(y, X) * x
+            elseif nielsentype == RIGHT_MULTIPLY         x * y
+            elseif nielsentype == RIGHT_MULTIPLY_INVERSE x * inv(y, X)
+        end
     end
     w₃ = Vector{Word{T}}()
-    for k ∈ (i + 1):length(X) push!(w₃, Word(X[k])) end  # todo: use copy
-    σ_images = [w₁; [w₂]; w₃]
-    σ = FreeGroupAutomorphism(A, σ_images)
-    return σ
+    for k ∈ (i + 1):n push!(w₃, Word(X[k])) end
+    return FreeGroupAutomorphism(X, [w₁; [w₂]; w₃]),
+           (i, j, iterate(instances(NielsenType), next_nielsenstate))
+end
+
+function Base.iterate(N::NielsenAutomorphisms, i, j, ::Val{INVERT})
+
 end
 
 function Base.iterate(W::WhiteheadAutomorphisms{T}) where {T}

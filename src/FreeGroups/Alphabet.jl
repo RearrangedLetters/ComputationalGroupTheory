@@ -1,3 +1,5 @@
+using ComputationalGroupTheory
+
 struct Alphabet{T}
 	letters::Vector{T}  # or alternatively an ordered set
 	positions::Dict{T, Int}
