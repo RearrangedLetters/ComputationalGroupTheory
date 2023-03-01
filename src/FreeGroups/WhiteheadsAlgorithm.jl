@@ -43,7 +43,9 @@ struct AutomorphismGraph{T}
     vertex_indices::Dict{Word{T}, Int}
     edges::Vector{Vector{Pair{FreeGroupAutomorphism{T}, Word{T}}}}
 
-    function AutomorphismGraph(X::Alphabet{T}; wordlength::Int) where {T}
+    function AutomorphismGraph(X::Alphabet{T};
+                               wordlength::Int,
+                               automorphisms=WhiteheadAutomorphisms(X)) where {T}
         vertices = Vector{Word{T}}()
         vertex_indices = Dict{Word{T}, Int}()
         edges = Vector{Vector{Pair{FreeGroupAutomorphism{T}, Word{T}}}}()
@@ -60,7 +62,7 @@ struct AutomorphismGraph{T}
             push!(edges, Vector{Pair{FreeGroupAutomorphism{T}, Word{T}}}())
         end
         for v ∈ vertices
-            for σ ∈ WhiteheadAutomorphisms(X)
+            for σ ∈ automorphisms
                 t = σ(v)
                 push!(edges[vertex_indices[v]], σ => t)
             end
@@ -72,8 +74,27 @@ end
 
 getindex(G::AutomorphismGraph{T}, w::Word{T}) where {T} = G.vertex_indices[w]
 order(G::AutomorphismGraph) = length(G.vertices)
+Base.size(G::AutomorphismGraph)  = sum(length.(G.edges))
 edges(G::AutomorphismGraph) = G.edges
 edges(G::AutomorphismGraph, s::Word{T}) where {T} = G.edges[G[s]]
+wordlength(G::AutomorphismGraph) = length(first(G.vertices))
+typeof(::AutomorphismGraph{T}) where {T} = T
+
+#=
+An edge (σ, w) is in the output, if σ(v) = w.
+=#
+function edges(G::AutomorphismGraph{T}, v::Word{T}, w::Word{T}) where {T}
+    if !haskey(G.vertex_indices, v) || !haskey(G.vertex_indices, v)
+        return Pair{FreeGroupAutomorphism{T}, Word{T}}[]
+    end
+    return filter(e -> e[2] == w, G.edges[G.vertex_indices[v]])
+end
+
+function Base.in(v::Word, G::AutomorphismGraph)
+    typeof(v) ≠ typeof(G) && return false
+    length(v) ≠ wordlength(G) && return false
+    return v ∈ G.vertices
+end
 
 #=
 Use a depth first search to find a path from s to t. The reverse composition of the

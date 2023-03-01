@@ -14,5 +14,4 @@
 # include("FreeGroups/WordTest.jl")
 # include("FreeGroups/OrderingTest.jl")
 # include("FreeGroups/FreeGroupAutomorphismTest.jl")
-include("FreeGroups/WhiteheadAutomorphismsTest.jl")
-# include("FreeGroups/WhiteheadAlgorithmTest.jl")
+include("FreeGroups/WhiteheadAlgorithmTest.jl")

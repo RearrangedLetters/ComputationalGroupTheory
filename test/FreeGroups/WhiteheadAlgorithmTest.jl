@@ -1,11 +1,81 @@
 using ComputationalGroupTheory
 using Test
 
+const X = Alphabet(:𝟙, :𝟙⁻)
+setinverse!(X, :𝟙, :𝟙⁻)
+const 𝟙    = Word(:𝟙)
+const 𝟙⁻   = Word(:𝟙⁻)
+const 𝟙𝟙   = Word(:𝟙, :𝟙)
+const 𝟙𝟙⁻  = Word(:𝟙, :𝟙⁻)
+const 𝟙⁻𝟙  = Word(:𝟙⁻, :𝟙)
+const 𝟙⁻𝟙⁻ = Word(:𝟙⁻, :𝟙⁻)
+
+const Y = symmetric_alphabet"ab"
+const a = word"a"
+const A = word"A"
+const b = word"b"
+const B = word"B"
+
+
+#= @testset "Nielsen Graph (1)" begin
+    N = NielsenAutomorphisms(X)
+    G = AutomorphismGraph(X, wordlength=1, automorphisms=N)
+
+    @test order(G) == 2
+    @test size(G)  == 2
+    @test 𝟙  ∈ G
+    @test 𝟙⁻ ∈ G
+
+    @test length(edges(G, 𝟙, 𝟙))   == 0
+    @test length(edges(G, 𝟙, 𝟙⁻))  == 1
+    @test length(edges(G, 𝟙⁻, 𝟙))  == 1
+    @test length(edges(G, 𝟙⁻, 𝟙⁻)) == 0
+end
+
+@testset "Nielsen Graph (2)" begin
+    N = NielsenAutomorphisms(X)
+    G = AutomorphismGraph(X, wordlength=2, automorphisms=N)
+
+    @test order(G) == 4
+    @test size(G)  == 4
+    @test 𝟙 * 𝟙   ∈ G
+    @test 𝟙 * 𝟙⁻  ∈ G
+    @test 𝟙⁻ * 𝟙  ∈ G
+    @test 𝟙⁻ * 𝟙⁻ ∈ G
+
+    # There are no identities:
+    @test length(edges(G, 𝟙𝟙,   𝟙𝟙))   == 0
+    @test length(edges(G, 𝟙⁻𝟙,  𝟙⁻𝟙))  == 0
+    @test length(edges(G, 𝟙𝟙⁻,  𝟙𝟙⁻))  == 0
+    @test length(edges(G, 𝟙⁻𝟙⁻, 𝟙⁻𝟙⁻)) == 0
+
+    # The only edges are induced by the inversion, the only automorphism in N
+    @test length(edges(G, 𝟙𝟙, 𝟙⁻𝟙⁻))  == 1
+    @test length(edges(G, 𝟙⁻𝟙⁻, 𝟙𝟙))  == 1
+    @test length(edges(G, 𝟙⁻𝟙, 𝟙𝟙⁻))  == 1
+    @test length(edges(G, 𝟙𝟙⁻, 𝟙⁻𝟙))  == 1
+    
+    # The remaining possibilities:
+    @test length(edges(G, 𝟙𝟙, 𝟙⁻𝟙))   == 0
+    @test length(edges(G, 𝟙𝟙, 𝟙𝟙⁻))   == 0
+    @test length(edges(G, 𝟙⁻𝟙, 𝟙𝟙))   == 0
+    @test length(edges(G, 𝟙⁻𝟙, 𝟙⁻𝟙⁻)) == 0
+    @test length(edges(G, 𝟙𝟙⁻, 𝟙𝟙))   == 0
+    @test length(edges(G, 𝟙𝟙⁻, 𝟙⁻𝟙⁻)) == 0
+    @test length(edges(G, 𝟙⁻𝟙⁻, 𝟙𝟙⁻)) == 0
+    @test length(edges(G, 𝟙⁻𝟙⁻, 𝟙⁻𝟙)) == 0
+end =#
+
+@testset "Nielsen Graph (3)" begin
+    N = NielsenAutomorphisms(Y)
+    G = AutomorphismGraph(Y, wordlength=2, automorphisms=N)
+
+    @test order(G) == 4^2
+    @test size(G)  == order(G) * length(N)
+end
+
 
 @testset "Automorphism Graph (1)" begin
-    X = Alphabet(:𝟙, :𝟙⁻)
-    setinverse!(X, :𝟙, :𝟙⁻)
-
     G = AutomorphismGraph(X, wordlength=1)
     @info G
     # The vertices are 1 and -1
@@ -15,10 +85,10 @@ using Test
 end
 
 @testset "Whitehead Word Reduction (1)" begin
-    X = symmetric_alphabet"a"
+    Y = symmetric_alphabet"a"
     v₁ = word"a"
     for i ∈ 1:3
-        w, σ, has_been_reduced = whitehead_reduce!(X, v₁^i)
+        w, σ, has_been_reduced = whitehead_reduce!(Y, v₁^i)
         @test w == v₁
         @test isnothing(σ)
         @test !has_been_reduced
@@ -26,25 +96,25 @@ end
 end
 
 @testset "Whitehead Word Reduction (2)" begin
-    X = symmetric_alphabet"ab"
+    Y = symmetric_alphabet"ab"
 
     v₁ = word"ab"  # can be reduced by setting x = a, y = b and x ↦ aB
-    w₁, σ₁, has_been_reduced₁ = whitehead_reduce!(X, v₁)
+    w₁, σ₁, has_been_reduced₁ = whitehead_reduce!(Y, v₁)
     @test w₁ == word"a"
-    @test σ₁ == FreeGroupAutomorphism(X, [word"aB", word"b", word"bA", word"B"])
+    @test σ₁ == FreeGroupAutomorphism(Y, [word"aB", word"b", word"bA", word"B"])
     @test has_been_reduced₁
     
     v₂ = word"ba"  # can be reduced by setting x = b, y = a and x ↦ bA
-    w₂, σ₂, has_been_reduced₂ = whitehead_reduce!(X, v₂)
+    w₂, σ₂, has_been_reduced₂ = whitehead_reduce!(Y, v₂)
     @test w₂ == word"a"
-    @test σ₂ == FreeGroupAutomorphism(X, [word"a", word"bA", word"A", word"aB"])
+    @test σ₂ == FreeGroupAutomorphism(Y, [word"a", word"bA", word"A", word"aB"])
     @test has_been_reduced₁
 end
 
 @testset "Automorphism Graph (2)" begin
-    X = symmetric_alphabet"ab"
+    Y = symmetric_alphabet"ab"
 
-    G = AutomorphismGraph(X, wordlength=2)
+    G = AutomorphismGraph(Y, wordlength=2)
     # Vertices:
     #   :a:a, :a:A, :a:b, :a:B,
     #   :b:a, :b:A, :b:b, :b:B
@@ -56,9 +126,9 @@ end
 end
 
 @testset "Automorphism Graph (3)" begin
-    X = symmetric_alphabet"abc"
+    Y = symmetric_alphabet"abc"
 
-    G = AutomorphismGraph(X, wordlength=3)
+    G = AutomorphismGraph(Y, wordlength=3)
     @test order(G) == 1
     @test size(G)  == 1
 end
