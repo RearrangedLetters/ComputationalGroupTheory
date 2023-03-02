@@ -1,7 +1,7 @@
 using ComputationalGroupTheory
 using Test
 
-@testset "Alphabets_1" begin
+@testset "Alphabets 1" begin
     A = Alphabet("a", "b", "c")
     @test length(A) == 3
     
@@ -14,7 +14,7 @@ using Test
     @test A[3] == "c"
 end
 
-@testset "Alphabets_2" begin
+@testset "Alphabets 2" begin
     A = Alphabet(["x", "y", "z"])
     for a ∈ A 
         @test !hasinverse(A, a)
@@ -25,4 +25,12 @@ end
     for a ∈ A
         @test hasinverse(A, a)
     end
+end
+
+@testset "Alphabets 3" begin
+    A = symmetric_alphabet"abc"
+    @test isinverse(A, :a, :A)
+    @test isinverse(A, :B, :b)
+    @test !isinverse(A, :a, :B)
+    @test !isinverse(A, :c, :c)
 end

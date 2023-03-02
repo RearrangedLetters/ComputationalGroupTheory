@@ -24,7 +24,8 @@ export nullspace, rowspace, echelonize, inv
 # include("Group.jl")
 
 include("FreeGroups/Alphabet.jl")
-export Alphabet, setinverse!, hasinverse, enumeratewords, @symmetric_alphabet_str
+export Alphabet, setinverse!, hasinverse, isinverse, enumeratewords,
+       @symmetric_alphabet_str
 
 include("Experimenting/Residue.jl")
 export Residue, zero
@@ -34,7 +35,7 @@ export Z1, Z1!, B1, B1!
 
 include("FreeGroups/Word.jl")
 export AbstractWord, Word, Words, one, freerewriteBV!, rewrite, @Σ_str, @stringword_str,
-       @word_str, @alphabet_str, iterate
+       @word_str, @alphabet_str, iterate, cyclically_reduce
 
 include("FreeGroups/Ordering.jl")
 export LenLex, lt

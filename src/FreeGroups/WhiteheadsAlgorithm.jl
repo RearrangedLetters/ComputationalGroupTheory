@@ -159,7 +159,8 @@ calculated with the method compose. It shall however be noted, that
 this composition might exhibit exponential image length.
 =#
 function whitehead!(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
-    # For now we assume v and w to be cyclicly reduced
+    cyclically_reduce!(v, X)
+    cyclically_reduce!(w, X)
 
     v, _, _ = minimize!(X, v)
     w, _, _ = minimize!(X, w)

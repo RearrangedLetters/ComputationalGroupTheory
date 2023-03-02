@@ -52,7 +52,7 @@ hasinverse(A::Alphabet, index::Integer) = hasinverse(A, A[index])  # is the part
 
 function isinverse(A::Alphabet{T}, letter₁::T, letter₂::T) where {T}
     if hasinverse(A, letter₁) && hasinverse(A, letter₂)
-        return inv(A, letter₁) == inv(A, letter₂)
+        return inv(A, letter₁) == letter₂
     else
         return false
     end
@@ -72,11 +72,11 @@ function Base.show(io::IO, A::Alphabet{T}) where {T}
     end =#
 end
 
-function enumeratewords(A::Alphabet, wordlength)
-    collect(Iterators.product(ntuple(_ -> A.letters, wordlength)...))
-end
-
 issymmetric(A::Alphabet) = all([hasinverse(A, l) for l ∈ A])
+
+macro alphabet_str(string::String)
+    return :(Alphabet([Symbol(s) for s ∈ $string]))
+end
 
 #=
 Expects a string with all lowercase characters. Each character then is taken
@@ -88,14 +88,6 @@ macro symmetric_alphabet_str(string::String)
     letters  = [Symbol(s) for s ∈ string]
     inverses = [Symbol(s) for s ∈ uppercase(string)]
     return :(Alphabet($letters, $inverses))
-end
-
-macro Σ_str(string::String)
-	return :(Alphabet(sort!(collect(Set(string.(collect($string)))))))
-end
-
-macro alphabet_str(string::String)
-    return :(Alphabet([Symbol(s) for s ∈ $string]))
 end
 
 macro inv(A::Alphabet, string::String)

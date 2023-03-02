@@ -1,4 +1,4 @@
-include("Alphabet.jl")
+using ComputationalGroupTheory
 
 abstract type AbstractWord{T} <: AbstractVector{T} end
 
@@ -16,17 +16,20 @@ mutable struct Word{T} <: AbstractWord{T}  # todo: mutable is probably not neces
 		new{T}(letters)
 	end
 
+	function Word(w::Word{T}) where {T}
+		new{T}(deepcopy(w.letters))
+	end
+
+	function Word{T}(w::Word{T}) where {T}
+		new{T}(deepcopy(w.letters))
+	end
+
 	function Word(letter::T) where {T}
 		new{T}([letter])
 	end
 
 	function Word(letters::T...) where {T}
 		new{T}(collect(letters))
-	end
-
-	function Word{S}(letter::T) where {S, T}
-		@assert S == T
-		new{T}([letter])
 	end
 
 	function Word{T}() where {T}
@@ -50,7 +53,7 @@ function Base.append!(w::Word{T}, v::Word{T}) where {T}
 	return w
 end
 
-Base.one(::Word{T}) where {T} = Word(T[])
+Base.one(::Word{T}) where {T} = Word{T}()
 Base.inv(w::AbstractWord{T}, A::Alphabet) where {T} = inv!(similar(w), w, A)
 
 function inv!(out::AbstractWord, w::AbstractWord, A::Alphabet)
@@ -75,8 +78,9 @@ function Base.:(==)(letter::T, w::AbstractWord{T}) where {T}
 	return length(w) == 1 ? (return w[1] == letter) : false
 end
 Base.:(==)(w::AbstractWord{T}, letter::T) where {T} = (letter == w)
-
 Base.push!(w::Word{T}, l::T) where {T} = push!(w.letters, l)
+Base.first(w::Word) = first(w.letters)
+Base.last(w::Word) = last(w.letters)
 
 function isprefix(v::Word, w::Word)
 	length(v) ≤ length(w) || return false
@@ -169,7 +173,7 @@ function freeRewriteV1!(w::Word, A::Alphabet)
 	return w
 end
 
-function freeRewriteBV!(w::Word, A::Alphabet)
+function freerewriteBV!(w::Word, A::Alphabet)
 	wordlength = length(w)
 	wordlength ≥ 2 || return w
 	l, r = 1, 2
@@ -195,6 +199,17 @@ function freeRewriteBV!(w::Word, A::Alphabet)
 	letters = w.letters[mask]
 	w.letters = letters
 	return w
+end
+
+cyclically_reduce(w::Word{T}, A::Alphabet{T}) where {T} = cyclically_reduce!(deepcopy(w), A)
+
+function cyclically_reduce!(w::Word{T}, A::Alphabet{T}) where {T}
+	freerewriteBV!(w, A)
+	i = 1
+	while (length(w) - 2 * (i - 1) > 1) && isinverse(A, w[i], w[end - i + 1])
+		i += 1
+	end
+	return w[i:(length(w) - i + 1)]
 end
 
 # This is the version from the lecture
@@ -229,17 +244,8 @@ function rewrite!(v::Word, w::Word, A::Alphabet)
     return v
 end
 
-# todo:
-# 	• There's a deque implemention as well. Might be desirable with a proper deque.
-#	  This could be implemented efficiently by starting with an empty BufferWord.
-#	• isone() check is probably necessary
-
-macro stringword_str(string::String)
-	return :(Word(string.(collect($string))))
-end
-
 macro word_str(string::String)
-	length(string) == 0 && return Symbol("")
+	length(string) == 0 && return Word{Symbol}()
 	letters = [Symbol(s) for s in string]
 	return :(Word($letters))
 end
@@ -274,24 +280,3 @@ function Base.iterate(words::Words, state)
 		return Word(collect(w)), nextstate
 	end
 end
-
-#= begin
-	using BenchmarkTools
-
-	@benchmark freeRewriteBV!(w"xxxxXXXX", $A)
-end =#
-
-#= 
-begin
-	A = Σ"xX"
-	# @inv A "xX"
-end
-
-begin
-	A = Σ"xyz"
-	setinverse!(A, "x", "X")
-	w = w"xxXAAXXXxx"
-	w = freeRewriteV1!(w, A)
-end =#
-
-# Compare performance on words like x¹⁰⁰X¹⁰⁰, x⁵⁰X¹⁰⁰x⁵⁰, (x¹⁰X¹⁰)¹⁰
