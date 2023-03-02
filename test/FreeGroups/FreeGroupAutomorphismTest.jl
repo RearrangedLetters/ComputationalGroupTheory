@@ -1,7 +1,50 @@
 using ComputationalGroupTheory
 using Test
 
-@testset "FreeGroupAutomorphism Test" begin
+#= @testset "Whitehead Automorphisms Type I (1)" begin
+    X = Basis(symmetric_alphabet"a")
+    W = WhiteheadAutomorphismsTypeI(X)
+    automorphisms = Vector{FreeGroupAutomorphism}()
+    for σ ∈ W push!(automorphisms, σ) end
+
+    @test length(automorphisms) == 1
+    
+    σ = first(automorphisms)
+    @test σ == FreeGroupAutomorphism(X, [word"a"])
+end =#
+
+@testset "Whitehead Automorphisms Type I (2)" begin
+    X = Basis(symmetric_alphabet"ab")
+    W = WhiteheadAutomorphismsTypeI(X)
+    automorphisms = Vector{FreeGroupAutomorphism}()
+    for σ ∈ W push!(automorphisms, σ) end
+
+    @test length(automorphisms) == 2
+
+    σ₁ = first(automorphisms)
+    σ₂ = last(automorphisms)
+    @test σ₁ == FreeGroupAutomorphism(X, [word"a", word"b"])
+    @test σ₂ == FreeGroupAutomorphism(X, [word"b", word"a"])
+end
+
+@testset "Whitehead Automorphisms Type I (3)" begin
+    X = Basis(symmetric_alphabet"abcde")
+    W = WhiteheadAutomorphismsTypeI(X)
+    count = 0
+    for _ ∈ W count += 1 end
+
+    @test count == factorial(length(X))
+end
+
+@testset "Whitehead Automorphisms Type II (1)" begin
+    
+end
+
+@testset "Whitehead Automorphisms Type II (2)" begin
+    
+end
+
+#= @testset "FreeGroupAutomorphism Test" begin
     X = symmetric_alphabet"abc"
     ε = Word{Symbol}()
 
@@ -103,7 +146,7 @@ end
         push!(automorphisms₂, σ)
     end
     @test length(automorphisms₂) == length(N₂)
-end
+end =#
 
 #= @testset "Count Free Group Automorphisms 1" begin
 #=

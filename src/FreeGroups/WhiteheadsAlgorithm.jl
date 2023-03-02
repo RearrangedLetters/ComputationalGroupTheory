@@ -63,7 +63,7 @@ struct AutomorphismGraph{T}
         end
         for v ∈ vertices
             for σ ∈ automorphisms
-                t = σ(v)
+                t = cyclically_reduce(σ(v), X)
                 if length(t) == wordlength
                     push!(edges[vertex_indices[v]], σ => t)
                 end
@@ -173,12 +173,12 @@ function whitehead!(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
 end
 
 function whitehead(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
-    return whitehead!(X, copy(v), copy(w))
+    return whitehead!(X, deepcopy(v), deepcopy(w))
 end
 
 function isprimitive(X::Alphabet, w::Word)
     τ = whitehead(X, w, X[1])
-    return isnothing(τ) ? false : length(τ) > 0
+    return isempty(τ) ? false : length(τ) > 0
 end
 
 #=

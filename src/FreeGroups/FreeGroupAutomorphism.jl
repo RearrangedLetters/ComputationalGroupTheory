@@ -1,11 +1,19 @@
-#=
-Models an automorphism of a free group on the given basis by prescribing images.
 
-Struct-invariant:
-    • length(images) == length(basis) / 2
-=#
+struct Basis{T}
+    alphabet::Alphabet{T}
+
+    function Basis(A::Alphabet{T}) where {T}
+        @assert issymmetric(A)
+        n = convert(Int, length(A) / 2)
+        @assert all(i -> inv(A, A.letters[i]) == A.letters[n + i], 1:n)
+        new{T}(A)
+    end
+end
+
+Base.length(X::Basis) = convert(Int, length(X.alphabet) / 2)
+
 struct FreeGroupAutomorphism{T}
-    basis::Alphabet{T}
+    basis::Basis{T}
     images::Vector{Word{T}}
 
     function FreeGroupAutomorphism(basis::Alphabet{T}, images::Vector{Word{T}}) where {T}
@@ -17,6 +25,11 @@ struct FreeGroupAutomorphism{T}
 
     function FreeGroupAutomorphism(basis::Alphabet{T}) where {T}
         new{T}(basis, [Word(x) for x ∈ basis])
+    end
+
+    function FreeGroupAutomorphism(basis::Basis{T}, images::Vector{Word{T}}) where {T}
+        @assert length(basis) == length(images)
+        new{T}(basis, images)
     end
 
     function FreeGroupAutomorphism{T}() where {T}
@@ -52,15 +65,6 @@ function Base.show(io::IO, σ::FreeGroupAutomorphism)
     end
 end
 
-struct WhiteheadAutomorphisms{T}
-    X::Alphabet{T}
-
-    function WhiteheadAutomorphisms(X::Alphabet{T}) where {T}
-        @assert issymmetric(X)
-        new{T}(X)
-    end
-end
-
 struct NielsenAutomorphisms{T}
     X::Alphabet{T}
 
@@ -77,11 +81,11 @@ function Base.length(N::NielsenAutomorphisms)
 end
 
 @enum NielsenType begin
-    INVERT=1
-    LEFT_MULTIPLY=2
-    LEFT_MULTIPLY_INVERSE=3
-    RIGHT_MULTIPLY=4
-    RIGHT_MULTIPLY_INVERSE=5
+    INVERT
+    LEFT_MULTIPLY
+    LEFT_MULTIPLY_INVERSE
+    RIGHT_MULTIPLY
+    RIGHT_MULTIPLY_INVERSE
 end
 
 function Base.iterate(N::NielsenAutomorphisms)
@@ -114,7 +118,7 @@ function Base.iterate(N::NielsenAutomorphisms{T}, state) where {T}
     nielsentype, next_nielsenstate = nielsenstate
     w₁ = Vector{Word{T}}()
     for k ∈ 1:(i - 1) push!(w₁, Word(X[k])) end  # todo: shouldn't subindexing work?
-    x = Word{T}(X[i])
+    x = Word(X[i])
     if i == j && nielsentype ≠ INVERT
         if j < n
             return iterate(N, (i, j + 1, nielsenstate))
@@ -127,7 +131,7 @@ function Base.iterate(N::NielsenAutomorphisms{T}, state) where {T}
     if nielsentype == INVERT
         w₂ = inv(x, X)
     else
-        y = Word{T}(X[j])
+        y = Word(X[j])
         w₂ =    if nielsentype == LEFT_MULTIPLY          y * x
             elseif nielsentype == LEFT_MULTIPLY_INVERSE  inv(y, X) * x
             elseif nielsentype == RIGHT_MULTIPLY         x * y
@@ -140,13 +144,58 @@ function Base.iterate(N::NielsenAutomorphisms{T}, state) where {T}
            (i, j, iterate(instances(NielsenType), next_nielsenstate))
 end
 
-function Base.iterate(W::WhiteheadAutomorphisms{T}) where {T}
-    # This is an iterator over all words of length (rank - 1) over letters 1 through 4:
-    iterator = Iterators.product(ntuple(_ -> 1:4, length(W.X) - 1)...)
-    _, iterator_state = Base.iterate(iterator)
-    return FreeGroupAutomorphism(W.X),  # the intial call gives the identity
-           (i=1, j=1, n=1, iₙ=1, m=1, l=1, iₗ=1, iterator, iterator_state)
+abstract type AbstractWhiteheadAutomorphisms{T} end
+
+fullalphabet(W::AbstractWhiteheadAutomorphisms) = W.X.basis
+rank(W::AbstractWhiteheadAutomorphisms) = length(W.X)
+basis(W::AbstractWhiteheadAutomorphisms) = W.X.alphabet.letters[1:rank(W)]
+
+struct WhiteheadAutomorphismsTypeI{T} <: AbstractWhiteheadAutomorphisms{T}
+    X::Basis{T}
 end
+
+function Base.iterate(W::WhiteheadAutomorphismsTypeI, state=1)
+    if state ≤ factorial(big(rank(W)))
+        return FreeGroupAutomorphism(W.X, [Word(x) for x ∈ nthperm(basis(W), state)]),
+               state + 1
+    else
+        return nothing
+    end
+end
+
+struct WhiteheadAutomorphismsTypeII{T} <: AbstractWhiteheadAutomorphisms{T}
+    X::Basis{T}
+end
+
+function Base.iterate(W::WhiteheadAutomorphismsTypeII, state=1)
+
+end
+
+struct WhiteheadAutomorphisms{T} <: AbstractWhiteheadAutomorphisms{T}
+    X::Alphabet{T}
+
+    function WhiteheadAutomorphisms(X::Alphabet{T}) where {T}
+        @assert issymmetric(X)
+        new{T}(X)
+    end
+end
+
+function Base.iterate(W::WhiteheadAutomorphisms)
+    W₁ = WhiteheadAutomorphismsTypeI(fullalphabet(W))
+    W₂ = WhiteheadAutomorphismsTypeII(fullalphabet(W))
+    state = (W₁, permutation, W₂, stateII)
+    return iterate(W, state)
+end
+
+function Base.iterate(::WhiteheadAutomorphisms, state)
+    W₁, permutation, W₂, stateII = state
+    next = iterate(W₁, permutation)
+    !isnothing(next) && return next[1], (W₁, next[2], W₂, stateII)
+    next = iterate(W₂, stateII)
+    !isnothing(next) && return next[1], (W₁, permutation, W₂, next[2])
+    return nothing
+end
+
 
 #=
 First we iterate over the Nielsen automorphisms. This immediatedly has the consequence
@@ -159,7 +208,7 @@ The state is a tuple (i, j, n, iₙ, m, iₗ, iterator_state) consisting of:
     • i and j correspond to the i-th and j-th letter in X
     • n = 1,...,5n(n-1) counting how many Nielsen automorphisms we already considered.
       This decides, when we start considering Whitehead autormorphisms of type i.
-    • iₙ ∈ {1, 2, 3, 4, 5} corresponding to one of the possible Nielsen automorphisms
+    • iₙ ∈ {1, 2, 3, 4, 5} corresponding to one of the inpossible Nielsen automorphisms
       after we fixed two basis elements.
     • m - 1 counts the number of Whitehead automorphisms of the first type considered so far
     • l - 1 counts the number of Whitehead automorphisms of the second type considered so far
@@ -219,7 +268,7 @@ end
 
 function Base.length(W::WhiteheadAutomorphisms)
     length_W::BigInt = 0
-    for _ in W
+    for _ ∈ W
         length_W += 1
     end
     return length_W

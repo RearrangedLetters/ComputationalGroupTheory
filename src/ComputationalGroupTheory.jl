@@ -44,7 +44,8 @@ include("Property (T)/MatrixGroup.jl")
 export MatrixGroup
 
 include("FreeGroups/FreeGroupAutomorphism.jl")
-export FreeGroupAutomorphism, WhiteheadAutomorphisms, NielsenAutomorphisms
+export FreeGroupAutomorphism, WhiteheadAutomorphisms, NielsenAutomorphisms,
+       WhiteheadAutomorphismsTypeI, WhiteheadAutomorphismsTypeII, Basis
 
 include("FreeGroups/WhiteheadsAlgorithm.jl")
 export whitehead, isprimitive, AutomorphismGraph, edges, connect_depthfirst,
