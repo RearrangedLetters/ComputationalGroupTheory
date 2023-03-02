@@ -33,7 +33,7 @@ include("Cohomology/Cohomology.jl")
 export Z1, Z1!, B1, B1!
 
 include("FreeGroups/Word.jl")
-export AbstractWord, Word, Words, one, freeRewriteBV!, rewrite, @Σ_str, @stringword_str,
+export AbstractWord, Word, Words, one, freerewriteBV!, rewrite, @Σ_str, @stringword_str,
        @word_str, @alphabet_str, iterate
 
 include("FreeGroups/Ordering.jl")
@@ -46,6 +46,7 @@ include("FreeGroups/FreeGroupAutomorphism.jl")
 export FreeGroupAutomorphism, WhiteheadAutomorphisms, NielsenAutomorphisms
 
 include("FreeGroups/WhiteheadsAlgorithm.jl")
-export whitehead, isprimitive, AutomorphismGraph, edges
+export whitehead, isprimitive, AutomorphismGraph, edges, connect_depthfirst,
+       compose, vertices
 
 end

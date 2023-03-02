@@ -64,7 +64,9 @@ struct AutomorphismGraph{T}
         for v ∈ vertices
             for σ ∈ automorphisms
                 t = σ(v)
-                push!(edges[vertex_indices[v]], σ => t)
+                if length(t) == wordlength
+                    push!(edges[vertex_indices[v]], σ => t)
+                end
             end
         end
 
@@ -74,20 +76,27 @@ end
 
 getindex(G::AutomorphismGraph{T}, w::Word{T}) where {T} = G.vertex_indices[w]
 order(G::AutomorphismGraph) = length(G.vertices)
+vertices(G::AutomorphismGraph) = G.vertices
 Base.size(G::AutomorphismGraph)  = sum(length.(G.edges))
 edges(G::AutomorphismGraph) = G.edges
-edges(G::AutomorphismGraph, s::Word{T}) where {T} = G.edges[G[s]]
 wordlength(G::AutomorphismGraph) = length(first(G.vertices))
 typeof(::AutomorphismGraph{T}) where {T} = T
+
+function edges(G::AutomorphismGraph, v::Word{T}) where {T}
+    if haskey(G.vertex_indices, v)
+        return G.edges[G.vertex_indices[v]]
+    end
+    return Pair{FreeGroupAutomorphism{T}, Word{T}}[]  # todo: this should throw an error
+end
 
 #=
 An edge (σ, w) is in the output, if σ(v) = w.
 =#
 function edges(G::AutomorphismGraph{T}, v::Word{T}, w::Word{T}) where {T}
-    if !haskey(G.vertex_indices, v) || !haskey(G.vertex_indices, v)
-        return Pair{FreeGroupAutomorphism{T}, Word{T}}[]
+    if haskey(G.vertex_indices, v) || !haskey(G.vertex_indices, v)
+        return filter(e -> e[2] == w, G.edges[G.vertex_indices[v]])
     end
-    return filter(e -> e[2] == w, G.edges[G.vertex_indices[v]])
+    return Pair{FreeGroupAutomorphism{T}, Word{T}}[]   # todo: this should throw an error
 end
 
 function Base.in(v::Word, G::AutomorphismGraph)
@@ -102,25 +111,35 @@ automorphisms in τ then satisfies s ↦ t. This algorithm only needs additional
 linear in the length of the path, but potentially finds longer paths than a shortest
 path algorithm. However, a shortest path algorithm needs exponential additional memory.
 Whichever version has the more desirable behavior needs to be determined experimentally.
-
-This algorithm technically modifies its inputs, however these are only auxillary data
-structures and should never be passed by a user. The first three inputs aren't being
-modified.
 =#
-function connect_depthfirst(G::AutomorphismGraph{T}, s::Word{T}, t::Word{T},
-                            visited=falses(order(G)), τ=FreeGroupAutomorphism[]) where {T}
-    s == t && return τ
+function connect_depthfirst(G::AutomorphismGraph{T}, s::Word{T}, t::Word{T}) where {T}
+    visited=falses(order(G))
+    visited[G.vertex_indices[s]] = true
+    return connect_depthfirst!(G, s, t, visited, FreeGroupAutomorphism{T}[])
+end
 
+function connect_depthfirst!(G::AutomorphismGraph{T}, s::Word{T}, t::Word{T},
+                            visited::BitVector, τ::Vector{FreeGroupAutomorphism{T}}) where {T}
+    s == t && return τ
     for (σ, v) ∈ edges(G, s)
-        iᵥ = G[w]
+        iᵥ = G.vertex_indices[v]
         if !visited[iᵥ]
             visited[iᵥ] = true
             push!(τ, σ)
-            return connect_depthfirst(G, v, t, visited, τ)
+            return connect_depthfirst!(G, v, t, visited, τ)
+        else
+            !isempty(τ) && pop!(τ)
         end
     end
+    return reverse!(τ)
+end
 
-    return τ
+function compose(τ::Vector{FreeGroupAutomorphism{T}}) where {T}
+    if isempty(τ) 
+        return FreeGroupAutomorphism{T}()
+    else
+        return foldr(∘, τ)
+    end
 end
 
 #=
@@ -136,7 +155,7 @@ polynomial time algorithm in experiments, making it practical for many
 applications. The worst-case complexity however is still exponential.
 The output is a list of automorphisms that need to be composed in
 reverse order to get the desired automorphism. This composition can be
-calculated with the method compose below. It shall however be noted, that
+calculated with the method compose. It shall however be noted, that
 this composition might exhibit exponential image length.
 =#
 function whitehead!(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
@@ -145,11 +164,11 @@ function whitehead!(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
     v, _, _ = minimize!(X, v)
     w, _, _ = minimize!(X, w)
 
-    # If v and w have different lengths, there cannot exit an automorphism
-    # carrying one to the other.
-    Base.length(v) == Base.length(w) || return nothing
-    G = automorphism_graph(X, Base.length(v))
-    return connect_depthfirst(X, v, w)
+    # If v and w are minimized and have different lengths,
+    # there cannot exit an automorphism carrying one to the other.
+    length(v) == length(w) || return nothing
+    G = automorphism_graph(X, length(v))
+    return connect_depthfirst(G, v, w)
 end
 
 function whitehead(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}

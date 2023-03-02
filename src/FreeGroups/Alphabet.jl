@@ -50,6 +50,14 @@ Base.inv(A::Alphabet{T}, index::Integer) where {T} = A.inverses[letters[index]] 
 hasinverse(A::Alphabet{T}, letter::T) where {T} = haskey(A.inverses, letter)  # 
 hasinverse(A::Alphabet, index::Integer) = hasinverse(A, A[index])  # is the partially defined "inv" defined for this particular index?
 
+function isinverse(A::Alphabet{T}, letter₁::T, letter₂::T) where {T}
+    if hasinverse(A, letter₁) && hasinverse(A, letter₂)
+        return inv(A, letter₁) == inv(A, letter₂)
+    else
+        return false
+    end
+end
+
 function Base.iterate(A::Alphabet, i=1)
     return if i > length(A) nothing else (A.letters[i], i + 1) end
 end

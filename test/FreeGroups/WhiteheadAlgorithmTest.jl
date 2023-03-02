@@ -1,8 +1,6 @@
 using ComputationalGroupTheory
 using Test
 
-const X = Alphabet(:𝟙, :𝟙⁻)
-setinverse!(X, :𝟙, :𝟙⁻)
 const 𝟙    = Word(:𝟙)
 const 𝟙⁻   = Word(:𝟙⁻)
 const 𝟙𝟙   = Word(:𝟙, :𝟙)
@@ -16,9 +14,13 @@ const A = word"A"
 const b = word"b"
 const B = word"B"
 
+const X = Alphabet(:𝟙, :𝟙⁻)
+setinverse!(X, :𝟙, :𝟙⁻)
 
-#= @testset "Nielsen Graph (1)" begin
-    N = NielsenAutomorphisms(X)
+const N = NielsenAutomorphisms(X)
+
+
+@testset "Nielsen Graph (1)" begin
     G = AutomorphismGraph(X, wordlength=1, automorphisms=N)
 
     @test order(G) == 2
@@ -33,7 +35,6 @@ const B = word"B"
 end
 
 @testset "Nielsen Graph (2)" begin
-    N = NielsenAutomorphisms(X)
     G = AutomorphismGraph(X, wordlength=2, automorphisms=N)
 
     @test order(G) == 4
@@ -64,14 +65,61 @@ end
     @test length(edges(G, 𝟙𝟙⁻, 𝟙⁻𝟙⁻)) == 0
     @test length(edges(G, 𝟙⁻𝟙⁻, 𝟙𝟙⁻)) == 0
     @test length(edges(G, 𝟙⁻𝟙⁻, 𝟙⁻𝟙)) == 0
-end =#
+end
 
 @testset "Nielsen Graph (3)" begin
-    N = NielsenAutomorphisms(Y)
-    G = AutomorphismGraph(Y, wordlength=2, automorphisms=N)
+    M = NielsenAutomorphisms(Y)
+    G = AutomorphismGraph(Y, wordlength=2, automorphisms=M)
 
-    @test order(G) == 4^2
+    @test order(G) == length(Y)^2
     @test size(G)  == order(G) * length(N)
+    for v ∈ vertices(G)
+        @test length(edges(G, v)) == 10
+    end
+
+    Z = symmetric_alphabet"abcd"
+    O = NielsenAutomorphisms(Z)
+    G = AutomorphismGraph(Z, wordlength=3, automorphisms=O)
+
+    @test order(G) == length(Z)^3
+    # @test size(G)  == order(G) * length(N)
+end
+
+@testset "Nielsen Graph Path Test (1)" begin
+    G = AutomorphismGraph(X, wordlength=1, automorphisms=N)
+
+    τ₁ = connect_depthfirst(G, 𝟙, 𝟙)
+    @test length(τ₁) == 0
+    
+    τ₂ = connect_depthfirst(G, 𝟙, 𝟙⁻)
+    @test length(τ₂) == 1
+    @test first(τ₂) == FreeGroupAutomorphism(X, [𝟙⁻, 𝟙])
+    
+    τ₃ = connect_depthfirst(G, 𝟙⁻, 𝟙)
+    @test length(τ₃) == 1
+    @test first(τ₃) == FreeGroupAutomorphism(X, [𝟙⁻, 𝟙])
+    
+    τ₄ = connect_depthfirst(G, 𝟙⁻, 𝟙⁻)
+    @test length(τ₄) == 0
+end
+
+@testset "Nielsen Graph Path Test (2)" begin
+    G = AutomorphismGraph(X, wordlength=3, automorphisms=N)
+
+    τ₁ = connect_depthfirst(G, Word(:𝟙, :𝟙, :𝟙), Word(:𝟙⁻, :𝟙⁻, :𝟙⁻))
+    @test length(τ₁) > 0
+    @test compose(τ₁)(Word(:𝟙, :𝟙, :𝟙)) == Word(:𝟙⁻, :𝟙⁻, :𝟙⁻)
+end
+
+@testset "Nielsen Graph Path Test (2)" begin
+    M = NielsenAutomorphisms(Y)
+    G = AutomorphismGraph(Y, wordlength=2, automorphisms=M)
+
+    τ₁ = connect_depthfirst(G, word"ab", word"BA")
+    @test length(τ₁) == 0
+
+    τ₂ = connect_depthfirst(G, word"bA", word"aa")
+    @test length(τ₂) == 0
 end
 
 

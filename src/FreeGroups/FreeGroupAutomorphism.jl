@@ -140,10 +140,6 @@ function Base.iterate(N::NielsenAutomorphisms{T}, state) where {T}
            (i, j, iterate(instances(NielsenType), next_nielsenstate))
 end
 
-function Base.iterate(N::NielsenAutomorphisms, i, j, ::Val{INVERT})
-
-end
-
 function Base.iterate(W::WhiteheadAutomorphisms{T}) where {T}
     # This is an iterator over all words of length (rank - 1) over letters 1 through 4:
     iterator = Iterators.product(ntuple(_ -> 1:4, length(W.X) - 1)...)
