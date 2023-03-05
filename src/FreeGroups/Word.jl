@@ -68,6 +68,7 @@ end
 # Implement abstract Vector interface
 Base.size(w::Word) = size(w.letters)
 Base.getindex(w::Word, i::Integer) = w.letters[i]
+Base.getindex(w::Word, range::UnitRange) = w.letters[range]
 Base.setindex!(w::Word, value, i::Int) = w.letters[i] = value
 typeof(::Word{T}) where {T} = T
 Base.length(w::Word) = length(w.letters)
@@ -209,7 +210,7 @@ function cyclically_reduce!(w::Word{T}, A::Alphabet{T}) where {T}
 	while (length(w) - 2 * (i - 1) > 1) && isinverse(A, w[i], w[end - i + 1])
 		i += 1
 	end
-	return w[i:(length(w) - i + 1)]
+	return Word(w[i:(length(w) - i + 1)])
 end
 
 # This is the version from the lecture

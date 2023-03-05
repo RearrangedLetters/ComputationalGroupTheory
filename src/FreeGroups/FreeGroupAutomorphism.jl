@@ -11,6 +11,8 @@ struct Basis{T}
 end
 
 Base.length(X::Basis) = convert(Int, length(X.alphabet) / 2)
+Base.getindex(X::Basis, i) = X.alphabet[i]
+alphabet(X::Basis) = X.alphabet
 
 struct FreeGroupAutomorphism{T}
     basis::Basis{T}
@@ -45,7 +47,9 @@ function Base.:(==)(σ::FreeGroupAutomorphism, τ::FreeGroupAutomorphism)
 end
 
 function apply!(σ::FreeGroupAutomorphism{T}, w::Word{T}) where {T}
-    return replace_all!(w, basis(σ).letters[1:length(images(σ))], images(σ))
+    toreplace = σ.basis.alphabet.letters
+    replacements = [images(σ); [inv(y, σ.basis.alphabet) for y ∈ images(σ)]]
+    return replace_all!(w, toreplace, replacements)
 end
 
 (σ::FreeGroupAutomorphism{T})(w::Word{T}) where {T} = apply!(σ, Base.copy(w))
@@ -66,31 +70,30 @@ function Base.show(io::IO, σ::FreeGroupAutomorphism)
 end
 
 struct NielsenAutomorphisms{T}
-    X::Alphabet{T}
+    X::Basis{T}
 
-    function NielsenAutomorphisms(X::Alphabet{T}) where {T}
-        @assert issymmetric(X)
+    function NielsenAutomorphisms(X::Basis{T}) where {T}
         @assert length(X) > 0
         new{T}(X)
     end
 end
 
 function Base.length(N::NielsenAutomorphisms)
-    n = convert(Int, length(N.X) / 2)
+    n = length(N.X)
     return 5n * (n - 1)
 end
 
 @enum NielsenType begin
-    INVERT
-    LEFT_MULTIPLY
-    LEFT_MULTIPLY_INVERSE
-    RIGHT_MULTIPLY
-    RIGHT_MULTIPLY_INVERSE
+    N_INVERT
+    N_LEFT_MULTIPLY
+    N_LEFT_MULTIPLY_INVERSE
+    N_RIGHT_MULTIPLY
+    N_RIGHT_MULTIPLY_INVERSE
 end
 
 function Base.iterate(N::NielsenAutomorphisms)
-    if convert(Int, length(N.X) / 2) == 1
-        return FreeGroupAutomorphism(N.X, [Word(inv(N.X, N.X[1]))]), nothing
+    if length(N.X) == 1
+        return FreeGroupAutomorphism(N.X, [Word(inv(N.X.alphabet, N.X.alphabet[1]))]), nothing
     end
     nielsen_state = iterate(instances(NielsenType))
     return iterate(N, (1, 1, nielsen_state))
@@ -102,7 +105,7 @@ and iterate over the NielsenTypes.
 =#
 function Base.iterate(N::NielsenAutomorphisms{T}, state) where {T}
     X = N.X
-    n = convert(Int, length(X) / 2)
+    n = length(X)
     if isnothing(state) return nothing end
     i, j, nielsenstate = state
     if i == j == n return nothing end
@@ -119,7 +122,7 @@ function Base.iterate(N::NielsenAutomorphisms{T}, state) where {T}
     w₁ = Vector{Word{T}}()
     for k ∈ 1:(i - 1) push!(w₁, Word(X[k])) end  # todo: shouldn't subindexing work?
     x = Word(X[i])
-    if i == j && nielsentype ≠ INVERT
+    if i == j && nielsentype ≠ N_INVERT
         if j < n
             return iterate(N, (i, j + 1, nielsenstate))
         elseif i < n
@@ -128,14 +131,14 @@ function Base.iterate(N::NielsenAutomorphisms{T}, state) where {T}
             return nothing
         end
     end
-    if nielsentype == INVERT
+    if nielsentype == N_INVERT
         w₂ = inv(x, X)
     else
         y = Word(X[j])
-        w₂ =    if nielsentype == LEFT_MULTIPLY          y * x
-            elseif nielsentype == LEFT_MULTIPLY_INVERSE  inv(y, X) * x
-            elseif nielsentype == RIGHT_MULTIPLY         x * y
-            elseif nielsentype == RIGHT_MULTIPLY_INVERSE x * inv(y, X)
+        w₂ =    if nielsentype == N_LEFT_MULTIPLY          y * x
+            elseif nielsentype == N_LEFT_MULTIPLY_INVERSE  inv(y, X) * x
+            elseif nielsentype == N_RIGHT_MULTIPLY         x * y
+            elseif nielsentype == N_RIGHT_MULTIPLY_INVERSE x * inv(y, X)
         end
     end
     w₃ = Vector{Word{T}}()
@@ -146,130 +149,147 @@ end
 
 abstract type AbstractWhiteheadAutomorphisms{T} end
 
-fullalphabet(W::AbstractWhiteheadAutomorphisms) = W.X.basis
-rank(W::AbstractWhiteheadAutomorphisms) = length(W.X)
-basis(W::AbstractWhiteheadAutomorphisms) = W.X.alphabet.letters[1:rank(W)]
+fullalphabet(W::AbstractWhiteheadAutomorphisms) = W.X.alphabet
+basis(W::AbstractWhiteheadAutomorphisms) = W.X
+rank(W::AbstractWhiteheadAutomorphisms) = length(basis(W))
 
 struct WhiteheadAutomorphismsTypeI{T} <: AbstractWhiteheadAutomorphisms{T}
     X::Basis{T}
 end
 
-function Base.iterate(W::WhiteheadAutomorphismsTypeI, state=1)
-    if state ≤ factorial(big(rank(W)))
-        return FreeGroupAutomorphism(W.X, [Word(x) for x ∈ nthperm(basis(W), state)]),
-               state + 1
+Base.length(W::WhiteheadAutomorphismsTypeI) = factorial(big(rank(W))) * 2^rank(W)
+
+function Base.iterate(W::WhiteheadAutomorphismsTypeI)
+    permutation = 1
+    inversion_iterator = iterate(Words(Alphabet([true, false]), rank(W)))
+    return iterate(W, (permutation, inversion_iterator))
+end
+
+function Base.iterate(W::WhiteheadAutomorphismsTypeI, state)
+    permutation, inversion_iterator = state
+    if isnothing(inversion_iterator)
+        return iterate(W::WhiteheadAutomorphismsTypeI,
+                      (permutation + 1, iterate(Words(Alphabet([true, false]), rank(W)))))
     else
-        return nothing
+        if permutation ≤ factorial(big(rank(W)))
+            inversion, inversion_state = inversion_iterator
+            images = nthperm(W.X.alphabet.letters[1:rank(W)], permutation)
+            for i ∈ 1:length(images)
+                if inversion[i] images[i] = inv(fullalphabet(W), images[i]) end
+            end
+            return FreeGroupAutomorphism(W.X, [Word(x) for x ∈ images]),
+                   (permutation, iterate(Words(Alphabet([true, false]), rank(W)), inversion_state))
+        else
+            return nothing
+        end
     end
 end
 
 struct WhiteheadAutomorphismsTypeII{T} <: AbstractWhiteheadAutomorphisms{T}
     X::Basis{T}
+    type_iterator
+
+    function WhiteheadAutomorphismsTypeII(X::Basis{T}) where {T}
+        whitehead_types = collect(instances(WhiteheadType))
+        new{T}(X, Words(Alphabet(whitehead_types), length(X) - 1))
+    end
 end
 
-function Base.iterate(W::WhiteheadAutomorphismsTypeII, state=1)
+function Base.length(W::WhiteheadAutomorphismsTypeII)
+    n = rank(W)
+    return 2n * 4^(n-1) - 2n
+end
 
+@enum WhiteheadType begin
+    W_IDENTITY
+    W_RIGHT_MULTIPLY
+    W_LEFT_MULTIPLY_INVERSE
+    W_CONJUGATE
+end
+
+function Base.iterate(W::WhiteheadAutomorphismsTypeII)
+    if rank(W) == 1
+        return nothing
+    else
+        return iterate(W, (1, iterate(W.type_iterator)))
+    end
+end
+
+function construct_whiteheadII(X::Basis{T}, multiplier_index, type_word) where {T}
+    a = Word(X[multiplier_index])
+    offset = 0
+    images = Vector{Word{T}}()
+    A = alphabet(X)
+    for i ∈ 1:length(X)
+        x = Word(X[i])
+        if i == multiplier_index || i == multiplier_index - length(X)
+            offset = 1
+            push!(images, x)
+        #elseif i == multiplier_index - length(X)
+        #    offset = 1
+        #    push!(images, inv(x, A))
+        else
+            whiteheadtype = type_word[i - offset]
+            w =     if whiteheadtype == W_IDENTITY              x
+                elseif whiteheadtype == W_RIGHT_MULTIPLY        x * a
+                elseif whiteheadtype == W_LEFT_MULTIPLY_INVERSE inv(a, A) * x
+                elseif whiteheadtype == W_CONJUGATE             inv(a, A) * x * a end
+            push!(images, w)
+        end
+    end
+    return FreeGroupAutomorphism(X, images)
+end
+
+function Base.iterate(W::WhiteheadAutomorphismsTypeII, state)
+    isnothing(state) && return nothing
+    multiplier_index, whiteheadtype_state = state
+    multiplier_index > 2rank(W) && return nothing
+    if isnothing(whiteheadtype_state)
+        return iterate(W, (multiplier_index + 1, iterate(W.type_iterator)))
+    else
+        type_word, next_state = whiteheadtype_state
+        i₁ = max(1, mod1(multiplier_index, rank(W)) - 1)
+        i₂ = min(length(type_word), mod1(multiplier_index, rank(W)) + 1)
+        if type_word[begin:i₁] == [W_IDENTITY for _ ∈ 1:i₁] &&
+           type_word[i₂:end] == [W_IDENTITY for _ ∈ i₂:length(type_word)]
+            return iterate(W, (multiplier_index, iterate(W.type_iterator, next_state)))
+        else
+            return construct_whiteheadII(W.X, multiplier_index, type_word),
+                   (multiplier_index, iterate(W.type_iterator, next_state))
+        end
+    end
 end
 
 struct WhiteheadAutomorphisms{T} <: AbstractWhiteheadAutomorphisms{T}
-    X::Alphabet{T}
+    X::Basis{T}
 
-    function WhiteheadAutomorphisms(X::Alphabet{T}) where {T}
-        @assert issymmetric(X)
+    function WhiteheadAutomorphisms(X::Basis{T}) where {T}
+        @assert issymmetric(X.alphabet)
         new{T}(X)
     end
 end
 
+function Base.length(W::WhiteheadAutomorphisms)
+    return length(WhiteheadAutomorphismsTypeI(W.X)) +
+           length(WhiteheadAutomorphismsTypeII(W.X))
+end
+
 function Base.iterate(W::WhiteheadAutomorphisms)
-    W₁ = WhiteheadAutomorphismsTypeI(fullalphabet(W))
-    W₂ = WhiteheadAutomorphismsTypeII(fullalphabet(W))
-    state = (W₁, permutation, W₂, stateII)
+    W₁ = WhiteheadAutomorphismsTypeI(basis(W))
+    W₂ = WhiteheadAutomorphismsTypeII(basis(W))
+    state = (W₁, iterate(W₁), W₂, iterate(W₂))
     return iterate(W, state)
 end
 
 function Base.iterate(::WhiteheadAutomorphisms, state)
-    W₁, permutation, W₂, stateII = state
-    next = iterate(W₁, permutation)
-    !isnothing(next) && return next[1], (W₁, next[2], W₂, stateII)
-    next = iterate(W₂, stateII)
-    !isnothing(next) && return next[1], (W₁, permutation, W₂, next[2])
-    return nothing
-end
-
-
-#=
-First we iterate over the Nielsen automorphisms. This immediatedly has the consequence
-that our implementation of Whitehead's algorithm employs the Nielsen-first heuristic.
-Since Nielsen automorphisms are Whitehead automorphisms, these will be considered twice.
-In the grand scheme of things this amounts to only quadratic additional work that won't
-be done in more than 99% of cases [HAR].
-
-The state is a tuple (i, j, n, iₙ, m, iₗ, iterator_state) consisting of:
-    • i and j correspond to the i-th and j-th letter in X
-    • n = 1,...,5n(n-1) counting how many Nielsen automorphisms we already considered.
-      This decides, when we start considering Whitehead autormorphisms of type i.
-    • iₙ ∈ {1, 2, 3, 4, 5} corresponding to one of the inpossible Nielsen automorphisms
-      after we fixed two basis elements.
-    • m - 1 counts the number of Whitehead automorphisms of the first type considered so far
-    • l - 1 counts the number of Whitehead automorphisms of the second type considered so far
-    • iₗ defines the position of the fixed element in the last loop
-    • iterator is an Iterator obtained from Base.iterate(::WhiteheadAutomorphisms) (see above)
-    • iterator_state is the state of iterator
-=#
-function Base.iterate(W::WhiteheadAutomorphisms{T}, state) where {T}
-    i, j, n, iₙ, m, l, iₗ, iterator, iterator_state = state
-    X = W.X
-    rank = convert(Int, length(X) / 2)
-
-    # First we cover the Nielsen automorphisms
-    if n ≤ 5 * rank * (rank - 1) || n ≤ 1
-        j > rank && return iterate(W, (i + 1, 1, n, 1, m, l, iₗ, iterator, iterator_state))
-        i == j && iₙ ≠ 1 && return iterate(W, (i, j + 1, n, iₙ, m, l, iₗ, iterator, iterator_state))
-        σ = nielsen(X, i, j, iₙ)
-        if isnothing(σ)
-            return iterate(W, (i, j + 1, n, 1, m, l, iₗ, iterator, iterator_state))
-        else 
-            return σ, (i, j, n + 1, iₙ + 1, 1, m, l, iₗ, iterator, iterator_state)
-        end
-    
-    # Then we cover the Whitehead autormorphisms of the permutation type
-    elseif m ≤ factorial(2 * rank)
-        m == 1 && return iterate(W, (i, j, n, iₙ, m + 1, l, iₗ, iterator, iterator_state))  # Skip identity
-        σ_image_vector = nthperm(X.letters, m)
-        σ_images = [Word(letter) for letter ∈ σ_image_vector]
-        σ = FreeGroupAutomorphism(X, σ_images)
-        return σ, (i, j, n, iₙ, m + 1, l, iₗ, iterator, iterator_state)
-
-    # Lastly we cover the Whitehead automorphisms of the multiplication type
-    elseif l ≤ 2 * rank * 4^(rank - 1) - 2 * rank
-        σ_images = Vector{Word{T}}()
-        index = 1
-        iteration = iterate(iterator, iterator_state)
-        if isnothing(iteration)
-            return iterate(W, (i, j, n, iₙ, m, l, iₗ + 1, iterator, Base.iterate(iterator)))
-        else 
-            t, _ = iteration
-        end
-        a = Word(X[iₗ])
-        while index ≤ 2 * rank
-            index == iₗ && continue
-            x = Word(X[index])
-            image = if t[index] == 1 x  # todo: use @enum
-                elseif t[index] == 2 x * a
-                elseif t[index] == 3 inv(a, X) * x
-                elseif t[index] == 4 inv(a, X) * x * a end
-            push!(σ_images, image)
-        end
-        σ = FreeGroupAutomorphism(X, σ_images)
-        return σ, (i, j, n, iₙ, m, l + 1, iₗ, iterate, iterator_state)
+    isnothing(state) && return nothing
+    W₁, state₁, W₂, state₂ = state
+    if !isnothing(state₁)
+        return state₁[1], (W₁, iterate(W₁, state₁[2]), W₂, state₂)
+    elseif !isnothing(state₂)
+        return state₂[1], (W₁, nothing, W₂, iterate(W₂, state₂[2]))
+    else
+        return nothing
     end
-    return nothing
 end
 
-function Base.length(W::WhiteheadAutomorphisms)
-    length_W::BigInt = 0
-    for _ ∈ W
-        length_W += 1
-    end
-    return length_W
-end

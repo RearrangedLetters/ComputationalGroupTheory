@@ -72,3 +72,17 @@ end
     @test cyclically_reduce(word"bBabAAa", A) == word"b"
     @test cyclically_reduce(word"abBA", A) == word""
 end
+
+#=
+The type Word can be used like a cyclic word by using getcyclicindex instead
+of getindex. To avoid bugs that are hard to find, the usually indexing is not
+cyclic by default.
+=#
+@testset "Cyclic Indexing" begin
+    w = word"abba"
+    cyclicword = Vector{Symbol}()
+    for i ∈ -1:6
+        push!(cyclicword, getcyclicindex(w, i))
+    end
+    @test cyclicword == word"baabbaab"
+end

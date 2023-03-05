@@ -14,11 +14,34 @@ const A = word"A"
 const b = word"b"
 const B = word"B"
 
-const X = Alphabet(:𝟙, :𝟙⁻)
-setinverse!(X, :𝟙, :𝟙⁻)
+T = Alphabet(:𝟙, :𝟙⁻)
+setinverse!(T, :𝟙, :𝟙⁻)
+const X = Basis(T)
 
 const N = NielsenAutomorphisms(X)
 
+@testset "Primitive elements in ℤ" begin
+    #=
+    Now F₁ ≅ ⟨𝟙⟩ ≅ ℤ, and there are exactly two primitive elements,
+    namely 𝟙 ≙ 1 and -1 ≙ 𝟙⁻.
+    =#
+    @test isprimitive_nielsenfirst(𝟙, X)
+    @test isprimitive_naive(𝟙, X)
+    @test isprimitive_nielsenfirst(𝟙⁻, X)
+    @test isprimitive_naive(𝟙⁻, X)
+
+    τ₁ = compose(whitehead_nielsenfirst(𝟙, 𝟙⁻, X))
+    τ₂ = compose(whitehead_naive(𝟙, 𝟙⁻, X))
+    @test τ₁ == τ₂ == FreeGroupAutomorphism(X, [𝟙⁻])
+
+    #=
+    Now we assert that neither 2 ≙ 𝟙𝟙 nor -2 ≙ 𝟙⁻𝟙⁻ are primitive.
+    =#
+    @test !isprimitive_nielsenfirst(𝟙𝟙, X)
+    @test !isprimitive_naive(𝟙𝟙, X)
+    @test !isprimitive_nielsenfirst(𝟙⁻𝟙⁻, X)
+    @test !isprimitive_naive(𝟙⁻𝟙⁻, X)
+end
 
 @testset "Nielsen Graph (1)" begin
     G = AutomorphismGraph(X, wordlength=1, automorphisms=N)
@@ -180,24 +203,3 @@ end
     @test order(G) == 1
     @test size(G)  == 1
 end
-
-#=
-@testset "Primitive elements in ℤ" begin
-    X = Alphabet(:𝟙)
-    setinverse!(X, :𝟙, :𝟙⁻)
-
-    @test freeRewriteBV!(word"𝟙𝟙⁻", X) == word""
-
-    #=
-    Now F₁ ≅ ⟨𝟙⟩ ≅ ℤ, and there are exactly two primitive elements,
-    namely 𝟙 ≙ 1 and -1 ≙ 𝟙⁻.
-    =#
-    @test isprimitive_naive(X, word"𝟙")
-    @test isprimitive_naive(X, word"𝟙⁻")
-
-    #=
-    Now we assert that neither 2 ≙ 𝟙𝟙 nor -2 ≙ 𝟙⁻𝟙⁻ are primitive.
-    =#
-    @test !isprimitive_naive(X, word"𝟙𝟙")
-    @test !isprimitive_naive(X, word"𝟙⁻𝟙⁻")
-end =#

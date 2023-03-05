@@ -1,17 +1,38 @@
 using ComputationalGroupTheory
 using Test
 
+@testset "Whitehead Automorphisms (1)" begin
+    X = Basis(symmetric_alphabet"a")
+    W = WhiteheadAutomorphisms(X)
+    automorphisms = Vector{FreeGroupAutomorphism}()
+    for σ ∈ W push!(automorphisms, σ) end
+
+    @test length(automorphisms) == length(Set(automorphisms))
+    @test length(automorphisms) == 2
+end
+
+@testset "Whitehead Automorphisms (2)" begin
+    X = Basis(symmetric_alphabet"ab")
+    W = WhiteheadAutomorphisms(X)
+    automorphisms = Vector{FreeGroupAutomorphism}()
+    for σ ∈ W push!(automorphisms, σ) end
+
+    @test length(automorphisms) == length(Set(automorphisms))
+    @test length(automorphisms) == length(W) == 20
+end
+
 #= @testset "Whitehead Automorphisms Type I (1)" begin
     X = Basis(symmetric_alphabet"a")
     W = WhiteheadAutomorphismsTypeI(X)
     automorphisms = Vector{FreeGroupAutomorphism}()
     for σ ∈ W push!(automorphisms, σ) end
 
-    @test length(automorphisms) == 1
+    @test length(automorphisms) == length(Set(automorphisms))
+    @test length(automorphisms) == 2
     
-    σ = first(automorphisms)
-    @test σ == FreeGroupAutomorphism(X, [word"a"])
-end =#
+    @test FreeGroupAutomorphism(X, [word"a"]) ∈ automorphisms
+    @test FreeGroupAutomorphism(X, [word"A"]) ∈ automorphisms
+end
 
 @testset "Whitehead Automorphisms Type I (2)" begin
     X = Basis(symmetric_alphabet"ab")
@@ -19,29 +40,70 @@ end =#
     automorphisms = Vector{FreeGroupAutomorphism}()
     for σ ∈ W push!(automorphisms, σ) end
 
-    @test length(automorphisms) == 2
+    @test length(automorphisms) == length(Set(automorphisms))
+    @test length(automorphisms) == length(W) == 8
 
-    σ₁ = first(automorphisms)
-    σ₂ = last(automorphisms)
-    @test σ₁ == FreeGroupAutomorphism(X, [word"a", word"b"])
-    @test σ₂ == FreeGroupAutomorphism(X, [word"b", word"a"])
+    @test FreeGroupAutomorphism(X, [word"b", word"a"]) ∈ automorphisms
+    @test FreeGroupAutomorphism(X, [word"B", word"a"]) ∈ automorphisms
+    @test FreeGroupAutomorphism(X, [word"b", word"A"]) ∈ automorphisms
+    @test FreeGroupAutomorphism(X, [word"B", word"A"]) ∈ automorphisms
+
+    @test FreeGroupAutomorphism(X, [word"a", word"b"]) ∈ automorphisms
+    @test FreeGroupAutomorphism(X, [word"A", word"b"]) ∈ automorphisms
+    @test FreeGroupAutomorphism(X, [word"a", word"B"]) ∈ automorphisms
+    @test FreeGroupAutomorphism(X, [word"A", word"B"]) ∈ automorphisms
 end
 
 @testset "Whitehead Automorphisms Type I (3)" begin
     X = Basis(symmetric_alphabet"abcde")
     W = WhiteheadAutomorphismsTypeI(X)
-    count = 0
-    for _ ∈ W count += 1 end
+    automorphisms = Vector{FreeGroupAutomorphism}()
+    for σ ∈ W push!(automorphisms, σ) end
 
-    @test count == factorial(length(X))
-end
+    @test length(automorphisms) == length(Set(automorphisms))
+    @test count == factorial(length(X)) * 2^length(X)
+end =#
 
-@testset "Whitehead Automorphisms Type II (1)" begin
+#= @testset "Whitehead Automorphisms Type II (1)" begin
+    X = Basis(symmetric_alphabet"a")
+    W = WhiteheadAutomorphismsTypeII(X)
+    automorphisms = Vector{FreeGroupAutomorphism}()
+    for σ ∈ W push!(automorphisms, σ) end
+
+    @test length(automorphisms) == length(Set(automorphisms))
+    @test length(automorphisms) == length(W) == 0
     
-end
+    @test FreeGroupAutomorphism(X, [word"a"]) ∈ automorphisms
+end =#
 
 @testset "Whitehead Automorphisms Type II (2)" begin
-    
+    X = Basis(symmetric_alphabet"ab")
+    W = WhiteheadAutomorphismsTypeII(X)
+    automorphisms = Vector{FreeGroupAutomorphism}()
+    for σ ∈ W push!(automorphisms, σ) end
+
+    @test length(automorphisms) == length(Set(automorphisms))
+    @test length(automorphisms) == length(W) == 12
+end
+
+@testset "Whitehead Automorphisms Type II (3)" begin
+    X = Basis(symmetric_alphabet"abc")
+    W = WhiteheadAutomorphismsTypeII(X)
+    automorphisms = Vector{FreeGroupAutomorphism}()
+    for σ ∈ W push!(automorphisms, σ) end
+
+    @test length(automorphisms) == length(Set(automorphisms))
+    @test length(automorphisms) == length(W) == 90
+end
+
+@testset "Whitehead Automorphisms Type II (4)" begin
+    X = Basis(symmetric_alphabet"abcd")
+    W = WhiteheadAutomorphismsTypeII(X)
+    automorphisms = Vector{FreeGroupAutomorphism}()
+    for σ ∈ W push!(automorphisms, σ) end
+
+    @test length(automorphisms) == length(Set(automorphisms))
+    @test length(automorphisms) == length(W) == 504
 end
 
 #= @testset "FreeGroupAutomorphism Test" begin

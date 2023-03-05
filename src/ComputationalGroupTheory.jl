@@ -35,7 +35,7 @@ export Z1, Z1!, B1, B1!
 
 include("FreeGroups/Word.jl")
 export AbstractWord, Word, Words, one, freerewriteBV!, rewrite, @Σ_str, @stringword_str,
-       @word_str, @alphabet_str, iterate, cyclically_reduce
+       @word_str, @alphabet_str, iterate, cyclically_reduce, getcyclicindex
 
 include("FreeGroups/Ordering.jl")
 export LenLex, lt
@@ -48,7 +48,7 @@ export FreeGroupAutomorphism, WhiteheadAutomorphisms, NielsenAutomorphisms,
        WhiteheadAutomorphismsTypeI, WhiteheadAutomorphismsTypeII, Basis
 
 include("FreeGroups/WhiteheadsAlgorithm.jl")
-export whitehead, isprimitive, AutomorphismGraph, edges, connect_depthfirst,
-       compose, vertices
+export whitehead_naive, whitehead_nielsenfirst, isprimitive_naive, isprimitive_nielsenfirst,
+       AutomorphismGraph, edges, connect_depthfirst, compose, vertices
 
 end

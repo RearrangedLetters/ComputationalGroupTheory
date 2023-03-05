@@ -2,68 +2,56 @@ using ComputationalGroupTheory
 using Test
 using Combinatorics
 
-#=
-The type Word can be used like a cyclic word by using getcyclicindex instead
-of getindex. To avoid bugs that are hard to find, the usually indexing is not
-cyclic by default.
-=#
-begin
-    w = word"abba"
-    cyclicword = Vector{Symbol}()
-    for i ∈ 1:8
-        push!(cyclicword, getcyclicindex(w, i))
-    end
-    @test cyclicword == word"abbaabba"
-end
 
-function whitehead_reduce!(X::Alphabet{T}, w::Word{T}) where {T}
+function whitehead_reduce!(w::Word{T}, X::Basis{T}) where {T}
     for σ ∈ WhiteheadAutomorphisms(X)
-        w′ = rewrite(σ(w), X)
+        w′ = cyclically_reduce(σ(w), X.alphabet)
         length(w′) < length(w) && return w′, σ, true
     end
     return w, nothing, false
 end
 
-function minimize!(X::Alphabet{T}, w::Word{T}) where {T}
-    has_been_shortend_once = false
+function minimize!(w::Word{T}, X::Basis{T}) where {T}
+    has_been_shortened = false
     S = Vector{FreeGroupAutomorphism{T}}()
     while true
-        w, σ, has_been_shortened = whitehead_reduce!(X, w)
+        w, σ, has_been_shortened = whitehead_reduce!(w, X)
         if has_been_shortened
-            has_been_shortend_once = true
             push!(S, σ)
+        else
+            break
         end
     end
-    return w, S, has_been_shortend_once
+    return w, S, has_been_shortened
 end
 
 struct AutomorphismGraph{T}
-    X::Alphabet{T}
+    X::Basis{T}
     vertices::Vector{Word{T}}
     vertex_indices::Dict{Word{T}, Int}
     edges::Vector{Vector{Pair{FreeGroupAutomorphism{T}, Word{T}}}}
 
-    function AutomorphismGraph(X::Alphabet{T};
+    function AutomorphismGraph(X::Basis{T};
                                wordlength::Int,
                                automorphisms=WhiteheadAutomorphisms(X)) where {T}
         vertices = Vector{Word{T}}()
         vertex_indices = Dict{Word{T}, Int}()
-        edges = Vector{Vector{Pair{FreeGroupAutomorphism{T}, Word{T}}}}()
-
+        
         i = 1
-        for w ∈ Words(X, wordlength)
+        for w ∈ Words(X.alphabet, wordlength)
             push!(vertices, w)
             push!(vertex_indices, w => i)
             i += 1
         end
-
+        
+        edges = Vector{Vector{Pair{FreeGroupAutomorphism{T}, Word{T}}}}()
         sizehint!(edges, length(vertices))
         for _ ∈ 1:length(vertices)
             push!(edges, Vector{Pair{FreeGroupAutomorphism{T}, Word{T}}}())
         end
         for v ∈ vertices
             for σ ∈ automorphisms
-                t = cyclically_reduce(σ(v), X)
+                t = cyclically_reduce(σ(v), X.alphabet)
                 if length(t) == wordlength
                     push!(edges[vertex_indices[v]], σ => t)
                 end
@@ -113,7 +101,7 @@ path algorithm. However, a shortest path algorithm needs exponential additional 
 Whichever version has the more desirable behavior needs to be determined experimentally.
 =#
 function connect_depthfirst(G::AutomorphismGraph{T}, s::Word{T}, t::Word{T}) where {T}
-    visited=falses(order(G))
+    visited = falses(order(G))
     visited[G.vertex_indices[s]] = true
     return connect_depthfirst!(G, s, t, visited, FreeGroupAutomorphism{T}[])
 end
@@ -158,27 +146,54 @@ reverse order to get the desired automorphism. This composition can be
 calculated with the method compose. It shall however be noted, that
 this composition might exhibit exponential image length.
 =#
-function whitehead!(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
-    cyclically_reduce!(v, X)
-    cyclically_reduce!(w, X)
+function whitehead_naive!(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
+    cyclically_reduce!(v, X.alphabet)
+    cyclically_reduce!(w, X.alphabet)
 
-    v, _, _ = minimize!(X, v)
-    w, _, _ = minimize!(X, w)
+    v, S₁, _ = minimize!(v, X)
+    w, _, _ = minimize!(w, X)
 
-    # If v and w are minimized and have different lengths,
-    # there cannot exit an automorphism carrying one to the other.
-    length(v) == length(w) || return nothing
-    G = automorphism_graph(X, length(v))
-    return connect_depthfirst(G, v, w)
+    length(v) ≠ length(w) && return nothing
+    G = AutomorphismGraph(X; wordlength=length(v), automorphisms=WhiteheadAutomorphisms(X))
+    return [connect_depthfirst(G, v, w); S₁]
 end
 
-function whitehead(X::Alphabet{T}, v::Word{T}, w::Word{T}) where {T}
-    return whitehead!(X, deepcopy(v), deepcopy(w))
+function whitehead_nielsenfirst!(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
+    cyclically_reduce!(v, X.alphabet)
+    cyclically_reduce!(w, X.alphabet)
+
+    v, S₁, _ = minimize!(v, X)
+    w, _, _ = minimize!(w, X)
+
+    length(v) ≠ length(w) && return nothing
+
+    G₁ = AutomorphismGraph(X; wordlength=length(v), automorphisms=NielsenAutomorphisms(X))
+    τ₁ = connect_depthfirst(G₁, v, w)
+    if !isnothing(τ₁) return τ₁ end
+    G₂ = AutomorphismGraph(X; wordlength=length(v), automorphisms=WhiteheadAutomorphisms(X))
+    return [connect_depthfirst(G₂, v, w); S₁]
 end
 
-function isprimitive(X::Alphabet, w::Word)
-    τ = whitehead(X, w, X[1])
-    return isempty(τ) ? false : length(τ) > 0
+function whitehead_naive(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
+    return whitehead_naive!(deepcopy(v), deepcopy(w), X)
+end
+
+function whitehead_nielsenfirst(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
+    return whitehead_nielsenfirst!(deepcopy(v), deepcopy(w), X)
+end
+
+function isprimitive_naive(w::Word, X::Basis)
+    v = Word(X[1])
+    if w == v return true end
+    τ = whitehead_naive(w, v, X)
+    return isnothing(τ) ? false : length(τ) > 0
+end
+
+function isprimitive_nielsenfirst(w::Word, X::Basis)
+    v = Word(X[1])
+    if w == v return true end
+    τ = whitehead_nielsenfirst(w, v, X)
+    return isnothing(τ) ? false : length(τ) > 0
 end
 
 #=
