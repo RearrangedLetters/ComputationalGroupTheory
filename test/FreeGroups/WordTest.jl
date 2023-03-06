@@ -86,3 +86,8 @@ cyclic by default.
     end
     @test cyclicword == word"baabbaab"
 end
+
+
+@testset "Produce Cyclically Minimal Words (1)" begin
+    
+end

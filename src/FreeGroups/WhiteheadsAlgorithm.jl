@@ -3,19 +3,19 @@ using Test
 using Combinatorics
 
 
-function whitehead_reduce!(w::Word{T}, X::Basis{T}) where {T}
-    for σ ∈ WhiteheadAutomorphisms(X)
+function whitehead_reduce!(w::Word{T}, X::Basis{T}; automorphisms::Vector{FreeGroupAutomorphism}) where {T}
+    for σ ∈ automorphisms
         w′ = cyclically_reduce(σ(w), X.alphabet)
         length(w′) < length(w) && return w′, σ, true
     end
     return w, nothing, false
 end
 
-function minimize!(w::Word{T}, X::Basis{T}) where {T}
+function minimize!(w::Word{T}, X::Basis{T}; automorphisms=WhiteheadAutomorphisms(X)) where {T}
     has_been_shortened = false
     S = Vector{FreeGroupAutomorphism{T}}()
     while true
-        w, σ, has_been_shortened = whitehead_reduce!(w, X)
+        w, σ, has_been_shortened = whitehead_reduce!(w, X, automorphisms=automorphisms)
         if has_been_shortened
             push!(S, σ)
         else
@@ -150,8 +150,8 @@ function whitehead_naive!(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
     cyclically_reduce!(v, X.alphabet)
     cyclically_reduce!(w, X.alphabet)
 
-    v, S₁, _ = minimize!(v, X)
-    w, _, _ = minimize!(w, X)
+    v, S₁, _ = minimize!(v, X, automorphisms=WhiteheadAutomorphisms(X))
+    w, _,  _ = minimize!(w, X, automorphisms=WhiteheadAutomorphisms(X))
 
     length(v) ≠ length(w) && return nothing
     G = AutomorphismGraph(X; wordlength=length(v), automorphisms=WhiteheadAutomorphisms(X))
@@ -162,8 +162,8 @@ function whitehead_nielsenfirst!(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
     cyclically_reduce!(v, X.alphabet)
     cyclically_reduce!(w, X.alphabet)
 
-    v, S₁, _ = minimize!(v, X)
-    w, _, _ = minimize!(w, X)
+    v, S₁, _ = minimize!(v, X, automorphisms=NielsenAutomorphisms(X))
+    w, _,  _ = minimize!(w, X, automorphisms=NielsenAutomorphisms(X))
 
     length(v) ≠ length(w) && return nothing
 

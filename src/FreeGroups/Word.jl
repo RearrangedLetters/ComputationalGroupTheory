@@ -281,3 +281,71 @@ function Base.iterate(words::Words, state)
 		return Word(collect(w)), nextstate
 	end
 end
+
+"""
+    CyclicWords(A, wordlength)
+
+	Provide an interface to an iterator for some cyclically distinct words over
+	given letters in canonical form.
+
+	This is currently not fully implemented. The algorithm misses a lot of words.
+
+	# Examples
+	Let A = [a, b] and wordlength = 3. Then the words produced are:
+	aaa, aab, abb, bbb.
+
+
+"""
+struct CyclicWords{T}
+	letters::Vector{T}
+    wordlength::Int
+	partition_iterator
+
+	function CyclicWords(A::Alphabet{T}, wordlength::Int) where {T}
+		partition_iterator = partitions(wordlength, length(A))
+		new{T}(A.letters, wordlength, partition_iterator)
+	end
+
+	function CyclicWords(A::Vector{T}, wordlength::Int) where {T}
+		partition_iterator = partitions(wordlength, length(A))
+		new{T}(letters, wordlength, partition_iterator)
+	end 
+end
+
+function word_frompartition(letters::Vector{T},
+						    partition::Vector{Int},
+							wordlength=sum(partition)::Int) where {T}
+
+	@assert length(letters) == length(partition)
+	out = Vector{T}()
+	resize!(out, wordlength)
+	position = 1
+	for (i, l) ∈ enumerate(letters)
+		for j ∈ 1:partition[i]
+			out[position] = l
+			position += 1
+		end
+	end
+	return out
+end
+
+function Base.iterate(cyclicwords::CyclicWords)
+	partition = iterate(cyclicwords.partition_iterator)
+	isnothing(partition) && return nothing
+	return iterate(cyclicwords, (partition[1], permutation))
+end
+
+function Base.iterate(cyclicwords::CyclicWords, state)
+	partition, permutation = state
+	if !isnothing(partition)
+		if permutation ≤ factorial(big(length(cyclicwords.letters)))
+			w = word_frompartition(cyclicwords.letters, partition, cyclicwords.wordlength)
+			return Word(w), (partition, permutation + 1)
+		else
+			nextpartition = iterate(cyclicwords.partition_iterator, partition)
+			return iterate(cyclicwords, (nextpartition[1], 1))
+		end
+	else
+		return nothing
+	end
+end
