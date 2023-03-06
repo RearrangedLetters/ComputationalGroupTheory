@@ -99,6 +99,27 @@ function issuffix(v::Word, w::Word)
 	return true
 end
 
+"""
+    arecyclicallyequal(w::Word{T}, v::Word{T})
+
+	Return whether w is a cyclic permutation of v.
+"""
+function arecyclicallyequal(w::Word{T}, v::Word{T}) where {T}
+	length(w) == length(v) || return false
+	for i ∈ 1:length(w)
+		outer_continue = false
+		for j ∈ 1:length(w)
+			if getcyclicindex(w, i - 1 + j) ≠ v[j]
+				outer_continue = true
+				break
+			end
+		end
+		if outer_continue continue end
+		return true
+	end
+	return false
+end
+
 function Base.popfirst!(w::Word)
 	return popfirst!(w.letters)
 end
@@ -302,11 +323,13 @@ struct CyclicWords{T}
 	partition_iterator
 
 	function CyclicWords(A::Alphabet{T}, wordlength::Int) where {T}
+		@warn "Doesn't produce all cyclically unique words!"
 		partition_iterator = partitions(wordlength, length(A))
 		new{T}(A.letters, wordlength, partition_iterator)
 	end
 
 	function CyclicWords(A::Vector{T}, wordlength::Int) where {T}
+		@warn "Doesn't produce all cyclically unique words!"
 		partition_iterator = partitions(wordlength, length(A))
 		new{T}(letters, wordlength, partition_iterator)
 	end 

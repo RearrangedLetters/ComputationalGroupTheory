@@ -35,7 +35,7 @@ export Z1, Z1!, B1, B1!
 
 include("FreeGroups/Word.jl")
 export AbstractWord, Word, Words, one, freerewriteBV!, rewrite, @Σ_str, @stringword_str,
-       @word_str, @alphabet_str, iterate, cyclically_reduce, getcyclicindex
+       @word_str, @alphabet_str, iterate, cyclically_reduce, getcyclicindex, arecyclicallyequal
 
 include("FreeGroups/Ordering.jl")
 export LenLex, lt

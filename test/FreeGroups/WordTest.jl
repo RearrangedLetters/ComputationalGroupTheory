@@ -87,7 +87,11 @@ cyclic by default.
     @test cyclicword == word"baabbaab"
 end
 
-
-@testset "Produce Cyclically Minimal Words (1)" begin
+@testset "Cyclic Equality (1)" begin
+    @test arecyclicallyequal(word"ananas", word"ananas") 
+    @test arecyclicallyequal(word"ananas", word"nasana")
+    @test arecyclicallyequal(word"nasananasana", word"nasananasana") 
     
+    @test !arecyclicallyequal(word"ananas", word"anana")
+    @test !arecyclicallyequal(word"ananas", word"anansa")
 end

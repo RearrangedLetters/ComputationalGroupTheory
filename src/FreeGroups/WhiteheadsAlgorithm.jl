@@ -25,7 +25,75 @@ function minimize!(w::Word{T}, X::Basis{T}; automorphisms=WhiteheadAutomorphisms
     return w, S, has_been_shortened
 end
 
-struct AutomorphismGraph{T}
+abstract type AbstractAutomorphismGraph{T} end
+
+getindex(G::AbstractAutomorphismGraph{T}, w::Word{T}) where {T} = G.vertex_indices[w]
+order(G::AbstractAutomorphismGraph) = length(G.vertices)
+vertices(G::AbstractAutomorphismGraph) = G.vertices
+Base.size(G::AbstractAutomorphismGraph)  = sum(length.(G.edges))
+edges(G::AbstractAutomorphismGraph) = G.edges
+wordlength(G::AbstractAutomorphismGraph) = length(first(G.vertices))
+typeof(::AbstractAutomorphismGraph{T}) where {T} = T
+
+function edges(G::AbstractAutomorphismGraph, v::Word{T}) where {T}
+    if haskey(G.vertex_indices, v)
+        return G.edges[G.vertex_indices[v]]
+    end
+    @error "Vertex not in graph!"
+end
+
+"""
+    edges(G, v, w)
+
+    Return all edges (σ, w) ∈ G leading from v to w.
+
+    An edge is in the graph, iff σ(v) = w.
+"""
+function edges(G::AbstractAutomorphismGraph{T}, v::Word{T}, w::Word{T}) where {T}
+    if haskey(G.vertex_indices, v)
+        return filter(e -> arecyclicallyequal(e[2], w), G.edges[G.vertex_indices[v]])
+    end
+    @error "Vertex $v not in graph!"
+end
+
+"""
+    ∈(w::Word, G::AbstractAutomorphismGraph)
+
+    Return if the w (taken as a cyclic word) is in G.
+"""
+function Base.in(w::Word{T}, G::AbstractAutomorphismGraph{T}) where {T}
+    length(w) ≠ wordlength(G) && return false
+
+    return w ∈ G.vertices
+end
+
+"""
+
+"""
+function Base.in(w::Word{T}, words::Vector{Word{T}}) where {T}
+    for v ∈ words
+        if arecyclicallyequal(w, v) return true end
+    end
+    return false
+end
+
+function Base.in(edge::Pair{FreeGroupAutomorphism{T}, Word{T}}, 
+                 edges::Vector{Pair{FreeGroupAutomorphism{T}, Word{T}}}) where {T}
+    (σ, w) = edge
+    for (τ, v) ∈ edges
+        if σ == τ && arecyclicallyequal(w, v) return true end
+    end
+    return false
+end
+
+"""
+    AutomorphismGraph
+
+    Represent a graph where the vertices are representatives of the conjuagcy classes
+    of the free group with basis X and each edge is labeled by an automorphism that
+    takes the origin word to the image.
+"""
+struct AutomorphismGraph{T} <: AbstractAutomorphismGraph{T}
     X::Basis{T}
     vertices::Vector{Word{T}}
     vertex_indices::Dict{Word{T}, Int}
@@ -39,9 +107,11 @@ struct AutomorphismGraph{T}
         
         i = 1
         for w ∈ Words(X.alphabet, wordlength)
-            push!(vertices, w)
-            push!(vertex_indices, w => i)
-            i += 1
+            if w ∉ vertices
+                push!(vertices, w)
+                push!(vertex_indices, w => i)
+                i += 1
+            end
         end
         
         edges = Vector{Vector{Pair{FreeGroupAutomorphism{T}, Word{T}}}}()
@@ -62,37 +132,6 @@ struct AutomorphismGraph{T}
     end
 end
 
-getindex(G::AutomorphismGraph{T}, w::Word{T}) where {T} = G.vertex_indices[w]
-order(G::AutomorphismGraph) = length(G.vertices)
-vertices(G::AutomorphismGraph) = G.vertices
-Base.size(G::AutomorphismGraph)  = sum(length.(G.edges))
-edges(G::AutomorphismGraph) = G.edges
-wordlength(G::AutomorphismGraph) = length(first(G.vertices))
-typeof(::AutomorphismGraph{T}) where {T} = T
-
-function edges(G::AutomorphismGraph, v::Word{T}) where {T}
-    if haskey(G.vertex_indices, v)
-        return G.edges[G.vertex_indices[v]]
-    end
-    return Pair{FreeGroupAutomorphism{T}, Word{T}}[]  # todo: this should throw an error
-end
-
-#=
-An edge (σ, w) is in the output, if σ(v) = w.
-=#
-function edges(G::AutomorphismGraph{T}, v::Word{T}, w::Word{T}) where {T}
-    if haskey(G.vertex_indices, v) || !haskey(G.vertex_indices, v)
-        return filter(e -> e[2] == w, G.edges[G.vertex_indices[v]])
-    end
-    return Pair{FreeGroupAutomorphism{T}, Word{T}}[]   # todo: this should throw an error
-end
-
-function Base.in(v::Word, G::AutomorphismGraph)
-    typeof(v) ≠ typeof(G) && return false
-    length(v) ≠ wordlength(G) && return false
-    return v ∈ G.vertices
-end
-
 #=
 Use a depth first search to find a path from s to t. The reverse composition of the
 automorphisms in τ then satisfies s ↦ t. This algorithm only needs additional memory
@@ -100,13 +139,13 @@ linear in the length of the path, but potentially finds longer paths than a shor
 path algorithm. However, a shortest path algorithm needs exponential additional memory.
 Whichever version has the more desirable behavior needs to be determined experimentally.
 =#
-function connect_depthfirst(G::AutomorphismGraph{T}, s::Word{T}, t::Word{T}) where {T}
+function connect_depthfirst(G::AbstractAutomorphismGraph{T}, s::Word{T}, t::Word{T}) where {T}
     visited = falses(order(G))
     visited[G.vertex_indices[s]] = true
     return connect_depthfirst!(G, s, t, visited, FreeGroupAutomorphism{T}[])
 end
 
-function connect_depthfirst!(G::AutomorphismGraph{T}, s::Word{T}, t::Word{T},
+function connect_depthfirst!(G::AbstractAutomorphismGraph{T}, s::Word{T}, t::Word{T},
                             visited::BitVector, τ::Vector{FreeGroupAutomorphism{T}}) where {T}
     s == t && return τ
     for (σ, v) ∈ edges(G, s)
