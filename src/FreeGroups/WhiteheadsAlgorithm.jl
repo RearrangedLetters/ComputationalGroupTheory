@@ -201,8 +201,10 @@ function whitehead_nielsenfirst!(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
     cyclically_reduce!(v, X.alphabet)
     cyclically_reduce!(w, X.alphabet)
 
-    v, S₁, _ = minimize!(v, X, automorphisms=NielsenAutomorphisms(X))
+    v, _, _ = minimize!(v, X, automorphisms=NielsenAutomorphisms(X))
+    v, S₁, _ = minimize!(v, X, automorphisms=WhiteheadAutomorphisms(X))
     w, _,  _ = minimize!(w, X, automorphisms=NielsenAutomorphisms(X))
+    w, _,  _ = minimize!(w, X, automorphisms=WhiteheadAutomorphisms(X))
 
     length(v) ≠ length(w) && return nothing
 
