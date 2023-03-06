@@ -40,6 +40,7 @@ struct FreeGroupAutomorphism{T}
 end
 
 basis(σ::FreeGroupAutomorphism) = σ.basis
+alphabet(σ::FreeGroupAutomorphism) = σ.basis.alphabet
 images(σ::FreeGroupAutomorphism) = σ.images
 
 function Base.:(==)(σ::FreeGroupAutomorphism, τ::FreeGroupAutomorphism)
@@ -54,6 +55,19 @@ end
 
 (σ::FreeGroupAutomorphism{T})(w::Word{T}) where {T} = apply!(σ, Base.copy(w))
 (σ::FreeGroupAutomorphism{T})(x::T) where {T} = apply!(σ, Word(x))
+
+"""
+    inv(σ::FreeGroupAutomorphism)
+
+    Return σ⁻¹, the inverse automorphism.
+"""
+function Base.inv(σ::FreeGroupAutomorphism{T}) where {T}
+    images = Vector{Word{T}}()
+    for i ∈ 1:length(basis(σ))
+        push!(images, inv(σ(X[i]), alphabet(σ)))
+    end
+    return FreeGroupAutomorphism(basis(σ), images)
+end
 
 function Base.push!(σ::FreeGroupAutomorphism{T}, replacement::Pair{T, Word{T}}) where {T}
     letter, word = replacement
@@ -225,9 +239,6 @@ function construct_whiteheadII(X::Basis{T}, multiplier_index, type_word) where {
         if i == multiplier_index || i == multiplier_index - length(X)
             offset = 1
             push!(images, x)
-        #elseif i == multiplier_index - length(X)
-        #    offset = 1
-        #    push!(images, inv(x, A))
         else
             whiteheadtype = type_word[i - offset]
             w =     if whiteheadtype == W_IDENTITY              x
