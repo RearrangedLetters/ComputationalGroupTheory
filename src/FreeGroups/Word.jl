@@ -68,7 +68,7 @@ end
 # Implement abstract Vector interface
 Base.size(w::Word) = size(w.letters)
 Base.getindex(w::Word, i::Integer) = w.letters[i]
-Base.getindex(w::Word, range::UnitRange) = w.letters[range]
+Base.getindex(w::Word, range::UnitRange) = Word(w.letters[range])
 Base.setindex!(w::Word, value, i::Int) = w.letters[i] = value
 typeof(::Word{T}) where {T} = T
 Base.length(w::Word) = length(w.letters)
@@ -264,6 +264,25 @@ function rewrite!(v::Word, w::Word, A::Alphabet)
 		end
 	end
     return v
+end
+
+"""
+splitbefore(w::Word, splitting_points)
+
+Get a list of words by splitting w into subwords defined by the wordlengths.
+
+# Examples
+splitbefore("rhubarb", [2, 1, 1, 0, 1]) = ["rh", "u", "b", "", "a", "rb"]
+"""
+function splitbefore(w::Word{T}, wordlengths::Vector{Int}) where {T}
+    wordlist = Vector{Word{T}}()
+	position = 1
+    for i ∈ 1:length(wordlengths)
+        range = position:(position + wordlengths[i] - 1)
+        push!(wordlist, w[range])
+		position += wordlengths[i]
+    end
+    return position - 1 == length(w) ? wordlist : push!(wordlist, w[position:end])
 end
 
 macro word_str(string::String)

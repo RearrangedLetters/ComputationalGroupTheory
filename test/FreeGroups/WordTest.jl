@@ -95,3 +95,8 @@ end
     @test !arecyclicallyequal(word"ananas", word"anana")
     @test !arecyclicallyequal(word"ananas", word"anansa")
 end
+
+@testset "Split Word" begin
+    @test splitbefore(word"abc", [2]) == [word"ab", word"c"]
+    @test splitbefore(word"rhubarb", [2, 1, 1, 0, 1]) == [word"rh", word"u", word"b", word"", word"a", word"rb"]
+end

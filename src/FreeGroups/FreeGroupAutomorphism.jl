@@ -1,5 +1,5 @@
 
-struct Basis{T}
+struct Basis{T}  # todo <: AbstractAlphabet
     alphabet::Alphabet{T}
 
     function Basis(A::Alphabet{T}) where {T}
@@ -59,7 +59,7 @@ end
 """
     inv(σ::FreeGroupAutomorphism)
 
-    Return σ⁻¹, the inverse automorphism.
+Return σ⁻¹, the inverse automorphism.
 """
 function Base.inv(σ::FreeGroupAutomorphism{T}) where {T}
     images = Vector{Word{T}}()
@@ -163,7 +163,7 @@ end
 
 abstract type AbstractWhiteheadAutomorphisms{T} end
 
-fullalphabet(W::AbstractWhiteheadAutomorphisms) = W.X.alphabet
+alphabet(W::AbstractWhiteheadAutomorphisms) = W.X.alphabet
 basis(W::AbstractWhiteheadAutomorphisms) = W.X
 rank(W::AbstractWhiteheadAutomorphisms) = length(basis(W))
 
@@ -189,7 +189,7 @@ function Base.iterate(W::WhiteheadAutomorphismsTypeI, state)
             inversion, inversion_state = inversion_iterator
             images = nthperm(W.X.alphabet.letters[1:rank(W)], permutation)
             for i ∈ 1:length(images)
-                if inversion[i] images[i] = inv(fullalphabet(W), images[i]) end
+                if inversion[i] images[i] = inv(alphabet(W), images[i]) end
             end
             return FreeGroupAutomorphism(W.X, [Word(x) for x ∈ images]),
                    (permutation, iterate(Words(Alphabet([true, false]), rank(W)), inversion_state))

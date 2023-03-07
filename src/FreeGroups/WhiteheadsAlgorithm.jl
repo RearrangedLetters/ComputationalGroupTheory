@@ -3,10 +3,18 @@ using Test
 using Combinatorics
 
 
-function whitehead_reduce!(w::Word{T}, X::Basis{T}; automorphisms::Vector{FreeGroupAutomorphism}) where {T}
+function whitehead_reduce(w::Word{T}, X::Basis{T}; automorphisms) where {T}
     for σ ∈ automorphisms
         w′ = cyclically_reduce(σ(w), X.alphabet)
         length(w′) < length(w) && return w′, σ, true
+    end
+    return w, nothing, false
+end
+
+function tuple_whitehead_reduce(w::Vector{Word{T}}, X::Basis{T}; automorphisms=WhiteheadAutomorphisms(X)) where {T}
+    for σ ∈ automorphisms
+        w′ = (v -> cyclically_reduce(v, X)).(w)
+        length(sum(length.(w′))) < sum(length.(w)) && return w′, σ, true  # todo: is this the correct check?
     end
     return w, nothing, false
 end
@@ -15,14 +23,26 @@ function minimize!(w::Word{T}, X::Basis{T}; automorphisms=WhiteheadAutomorphisms
     has_been_shortened = false
     S = Vector{FreeGroupAutomorphism{T}}()
     while true
-        w, σ, has_been_shortened = whitehead_reduce!(w, X, automorphisms=automorphisms)
+        w, σ, has_been_shortened = whitehead_reduce(w, X, automorphisms=automorphisms)
         if has_been_shortened
             push!(S, σ)
         else
-            break
+            return w, S, has_been_shortened
         end
     end
-    return w, S, has_been_shortened
+end
+
+function tuple_minimize!(w::Vector{Word{T}}, X::Basis{T}; automorphisms=WhiteheadAutomorphisms(X)) where {T}
+    has_been_shortened = false
+    S = Vector{FreeGroupAutomorphism{T}}()
+    while true
+        w, σ, has_been_shortened = tuple_whitehead_reduce(w, X, automorphisms=automorphisms)
+        if has_been_shortened
+            push!(S, σ)
+        else
+            return w, S, has_been_shortened
+        end
+    end
 end
 
 abstract type AbstractAutomorphismGraph{T} end
@@ -129,6 +149,49 @@ struct AutomorphismGraph{T} <: AbstractAutomorphismGraph{T}
         end
 
         new{T}(X, vertices, vertex_indices, edges)
+    end
+end
+
+struct TupleAutomorphismGraph{T} <: AbstractAutomorphismGraph{T}
+    X::Basis{T}
+    vertices::Vector{Vector{Word{T}}}
+    wordlengths::Vector{Int}
+    vertex_indices::Dict{Vector{Word{T}}, Int}
+    edges::Vector{Vector{Pair{FreeGroupAutomorphism{T}, Vector{Word{T}}}}}
+
+    function AutomorphismGraph(X::Basis{T};
+        wordlengths::Vector{Int},
+        automorphisms=WhiteheadAutomorphisms(X)) where {T}
+
+        vertices = Vector{Vector{Word{T}}}
+        vertex_indices = Dict{Word{T}, Int}()
+
+        i = 1
+        for w ∈ Words(X.alphabet, sum(wordlength))
+            v = splitbefore(w, wordlengths)
+            for vᵢ ∈ v cyclically_reduce!(vᵢ, alphabet(X)) end
+            if v ∉ vertices
+                push!(vertices, w)
+                push!(vertex_indices, w => i)
+                i += 1
+            end
+        end
+
+        edges = Vector{Vector{Pair{FreeGroupAutomorphism{T}, Vector{Word{T}}}}}()
+        sizehint!(edges, length(vertices))
+        for _ ∈ 1:length(vertices)
+            push!(edges, Vector{Pair{FreeGroupAutomorphism{T}, Word{T}}}())
+        end
+        for v ∈ vertices
+            for σ ∈ automorphisms
+                for vᵢ ∈ v cyclically_reduce!(σ(vᵢ), alphabet(X)) end
+                if length.(v) == wordlengths
+                    push!(edges[vertex_indices[v]], σ => t)
+                end
+            end
+        end
+
+        new{T}(X, vertices, wordlengths, vertex_indices, edges)
     end
 end
 
