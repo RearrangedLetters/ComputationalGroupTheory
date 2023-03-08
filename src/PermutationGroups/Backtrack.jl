@@ -1,4 +1,4 @@
-include("SchreierSims.jl")
+using ComputationalGroupTheory
 
 """
     Vertex{V}

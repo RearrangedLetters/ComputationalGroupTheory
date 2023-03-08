@@ -1,4 +1,4 @@
-include("AbstractPermutation.jl")
+using ComputationalGroupTheory
 
 struct CyclePermutation <: AbstractPermutation
     cycles::Vector{Vector{Int}}

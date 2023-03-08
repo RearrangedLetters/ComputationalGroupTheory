@@ -1,4 +1,4 @@
-include("AbstractPermutation.jl")
+using ComputationalGroupTheory
 
 struct Permutation <: AbstractPermutation
     images::Vector{Int}

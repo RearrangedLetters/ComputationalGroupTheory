@@ -1,6 +1,4 @@
-include("AbstractPermutation.jl")
-include("Permutation.jl")
-include("CyclePermutation.jl")
+using ComputationalGroupTheory
 
 @inline makeSymmetric!(s::GroupElement) = makeSymmetric!([s])
 

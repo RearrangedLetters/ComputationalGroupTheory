@@ -1,4 +1,4 @@
-include("Transversal.jl")
+using ComputationalGroupTheory
 
 function Base.:(∈)(g::AbstractPermutation, S::AbstractVector{<:AbstractPermutation})
 	return sift(stabilizerChain(S), g) == one(Permutation([1]))
