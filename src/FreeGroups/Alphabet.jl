@@ -1,6 +1,8 @@
 using ComputationalGroupTheory
 
-struct Alphabet{T}
+abstract type AbstractAlphabet{T} end
+
+struct Alphabet{T} <: AbstractAlphabet{T}
 	letters::Vector{T}  # or alternatively an ordered set
 	positions::Dict{T, Int}
     inverses::Dict{T, T}  # or store a vector with placeholders and keep these consistent
@@ -74,15 +76,24 @@ end
 
 issymmetric(A::Alphabet) = all([hasinverse(A, l) for l ∈ A])
 
+"""
+
+"""
 macro alphabet_str(string::String)
     return :(Alphabet([Symbol(s) for s ∈ $string]))
 end
 
-#=
+"""
+    @symmetric_alphabet(string)
+
 Expects a string with all lowercase characters. Each character then is taken
-as a Symbol and it's inverse is set to be the uppercase version.
+as a Symbol and it's inverse is set to be the uppercase form of the character.
 This string macro is compatible with the word macro in Word.jl
-=#
+
+# Examples
+@symmetric_alphabet"ab" creates an instance of Alphabet{Symbol} with letters
+:a, :b, :A, :B in this exact order.
+"""
 macro symmetric_alphabet_str(string::String)
     @assert all([islowercase(s) for s ∈ string])
     letters  = [Symbol(s) for s ∈ string]

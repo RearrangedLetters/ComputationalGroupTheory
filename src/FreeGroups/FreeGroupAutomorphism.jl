@@ -1,19 +1,4 @@
 
-struct Basis{T}  # todo <: AbstractAlphabet
-    alphabet::Alphabet{T}
-
-    function Basis(A::Alphabet{T}) where {T}
-        @assert issymmetric(A)
-        n = convert(Int, length(A) / 2)
-        @assert all(i -> inv(A, A.letters[i]) == A.letters[n + i], 1:n)
-        new{T}(A)
-    end
-end
-
-Base.length(X::Basis) = convert(Int, length(X.alphabet) / 2)
-Base.getindex(X::Basis, i) = X.alphabet[i]
-alphabet(X::Basis) = X.alphabet
-
 struct FreeGroupAutomorphism{T}
     basis::Basis{T}
     images::Vector{Word{T}}

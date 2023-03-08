@@ -18,6 +18,8 @@ T = Alphabet(:𝟙, :𝟙⁻)
 setinverse!(T, :𝟙, :𝟙⁻)
 const X = Basis(T)
 
+const Z = symmetric_alphabet"abcdefgh"
+
 const N = NielsenAutomorphisms(X)
 
 @testset "Primitive elements in ℤ" begin
@@ -41,6 +43,57 @@ const N = NielsenAutomorphisms(X)
     @test !isprimitive_naive(𝟙𝟙, X)
     @test !isprimitive_nielsenfirst(𝟙⁻𝟙⁻, X)
     @test !isprimitive_naive(𝟙⁻𝟙⁻, X)
+end
+
+@testset "Primitivity (Naive)" begin
+    @test !isprimitive_naive(word"", X)
+    @test !isprimitive_naive(word"", Y)
+    @test !isprimitive_naive(word"", Z)
+    
+    @test isprimitive_naive(word"a", Y)
+    @test isprimitive_naive(word"ab", Y)
+    @test isprimitive_naive(word"ABab", Y)
+
+    @test !isprimitive_naive(word"aa", Y)
+    @test !isprimitive_naive(word"abaB", Y)
+
+    @test isprimitive_naive(word"abcdefgh", Z)
+    @test isprimitive_naive(word"ABCDE", Z)
+    @test isprimitive_naive(word"aaaabbbccd", Z)
+end
+
+@testset "Primitivity (Nielsen First)" begin
+    @test !isprimitive_nielsenfirst(word"", X)
+    @test !isprimitive_nielsenfirst(word"", Y)
+    @test !isprimitive_nielsenfirst(word"", Z)
+    
+    @test isprimitive_nielsenfirst(word"a", Y)
+    @test isprimitive_nielsenfirst(word"ab", Y)
+    @test isprimitive_nielsenfirst(word"ABab", Y)
+
+    @test !isprimitive_nielsenfirst(word"aa", Y)
+    @test !isprimitive_nielsenfirst(word"abaB", Y)
+
+    @test isprimitive_nielsenfirst(word"abcdefgh", Z)
+    @test isprimitive_nielsenfirst(word"ABCDE", Z)
+    @test isprimitive_nielsenfirst(word"aaaabbbccd", Z)
+end
+
+@testset "Primitivity (Nielsen Only)" begin
+    @test !isprimitive_nielsenonly(word"", X)
+    @test !isprimitive_nielsenonly(word"", Y)
+    @test !isprimitive_nielsenonly(word"", Z)
+    
+    @test isprimitive_nielsenonly(word"a", Y)
+    @test isprimitive_nielsenonly(word"ab", Y)
+    @test isprimitive_nielsenonly(word"ABab", Y)
+
+    @test !isprimitive_nielsenonly(word"aa", Y)
+    @test !isprimitive_nielsenonly(word"abaB", Y)
+
+    @test isprimitive_nielsenonly(word"abcdefgh", Z)
+    @test isprimitive_nielsenonly(word"ABCDE", Z)
+    @test isprimitive_nielsenonly(word"aaaabbbccd", Z)
 end
 
 @testset "Nielsen Graph (1)" begin

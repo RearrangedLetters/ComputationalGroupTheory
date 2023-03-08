@@ -1,7 +1,5 @@
 module ComputationalGroupTheory
 
-using Random
-
 export Permutation, degree, orbit, transversal, transversalFactored, transversalSchreier, representative,
        @perm_str, schreierSims, order, PointStabilizer, Transversal, FactoredTransversal,
        TransversalTree, backtrackRecursive, backtrack, isAbelian
@@ -20,8 +18,6 @@ export UnionFind, find, union, collectBlocks
 
 include("Cohomology/ExactMatrices.jl")
 export nullspace, rowspace, echelonize, inv
-
-# include("Group.jl")
 
 include("FreeGroups/Alphabet.jl")
 export Alphabet, setinverse!, hasinverse, isinverse, enumeratewords,
@@ -50,6 +46,6 @@ export FreeGroupAutomorphism, WhiteheadAutomorphisms, NielsenAutomorphisms,
 
 include("FreeGroups/WhiteheadsAlgorithm.jl")
 export whitehead_naive, whitehead_nielsenfirst, isprimitive_naive, isprimitive_nielsenfirst,
-       AutomorphismGraph, edges, connect_depthfirst, compose, vertices
+       isprimitive_nielsenonly, AutomorphismGraph, edges, connect_depthfirst, compose, vertices
 
 end
