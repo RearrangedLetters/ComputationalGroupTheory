@@ -1,6 +1,5 @@
+using ComputationalGroupTheory
 import Base.Order: lt, Ordering
-include("Alphabet.jl")
-include("Word.jl")
 
 abstract type WordOrdering <: Ordering end
 

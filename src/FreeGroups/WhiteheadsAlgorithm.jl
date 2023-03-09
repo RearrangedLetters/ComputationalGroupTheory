@@ -15,7 +15,7 @@ length will be found.
 function whitehead_reduce(w::Word{T}, X::Basis{T}; automorphisms=WhiteheadAutomorphisms(X)) where {T}
     w′ = copy(w)
     for σ ∈ automorphisms
-        w′ = cyclically_reduce(σ(w′), X.alphabet)
+        w′ = cyclically_reduce(σ(w′), alphabet(X))
         length(w′) < length(w) && return w′, σ, true
     end
     return w, nothing, false
@@ -34,7 +34,7 @@ automorphism will be found if and only iff there is one.
 function tuple_whitehead_reduce(w::Vector{Word{T}}, X::Basis{T}; automorphisms=WhiteheadAutomorphisms(X)) where {T}
     w′ = copy(w)
     for σ ∈ automorphisms
-        w′ = (v -> cyclically_reduce(v, X.alphabet)).(w′)
+        w′ = (v -> cyclically_reduce(v, alphabet(X))).(w′)
         length(sum(length.(w′))) < sum(length.(w)) && return w′, σ, true  # todo: is this the correct check?
     end
     return w, nothing, false
@@ -122,13 +122,12 @@ end
 """
     edges(G, v, w)
 
-Return all edges (σ, w) ∈ G leading from v to w.
-
-An edge is in the graph, iff σ(v) = w.
+Return all edges (σ, w) ∈ G leading from v to w. An edge is in the graph, iff σ(v) = w.
+Possibly return multiple edges as the automorphism graph is a multi-graph.
 """
 function edges(G::AbstractAutomorphismGraph{T}, v::Word{T}, w::Word{T}) where {T}
     if haskey(G.vertex_indices, v)
-        return filter(e -> arecyclicallyequal(e[2], w), G.edges[G.vertex_indices[v]])
+        return filter(e -> arecyclicallyequal(e[2], w), edges(G, v))
     end
     @error "Vertex $v not in graph!"
 end
@@ -136,7 +135,7 @@ end
 """
     ∈(w::Word, G::AbstractAutomorphismGraph)
 
-Return if the w (understood as a cyclic word) is in G.
+Return if w (understood as a cyclic word) is among the vertices of G.
 """
 function Base.in(w::Word{T}, G::AbstractAutomorphismGraph{T}) where {T}
     length(w) ≠ wordlength(G) && return false
@@ -150,7 +149,7 @@ end
 """
     ∈(w::Word, G::AbstractAutomorphismGraph)
 
-Return if the w (understood as a cyclic word) is in G.
+Decide if w (understood as a cyclic word) is in G.
 """
 function Base.in(w::Word{T}, words::Vector{Word{T}}) where {T}
     for v ∈ words
@@ -162,7 +161,7 @@ end
 """
     ∈(edge, edges)
 
-Check if the given edge is in the edge list edges.
+Check if the given edge is among the given edges.
 """
 function Base.in(edge::Pair{FreeGroupAutomorphism{T}, Word{T}}, 
                  edges::Vector{Pair{FreeGroupAutomorphism{T}, Word{T}}}) where {T}
@@ -174,35 +173,36 @@ function Base.in(edge::Pair{FreeGroupAutomorphism{T}, Word{T}},
 end
 
 """
-    AutomorphismGraph
+    SimpleAutomorphismGraph
 
 Represent a graph where the vertices are words in the free group with
 basis X and each edge is labeled by an automorphism that takes the origin
 word to the image under this automorphism.
 It is possible to take only the cylic words as vertices.
 """
-struct AutomorphismGraph{T} <: AbstractAutomorphismGraph{T}
+struct SimpleAutomorphismGraph{T} <: AbstractAutomorphismGraph{T}
     X::Basis{T}
     vertices::Vector{Word{T}}
     vertex_indices::Dict{Word{T}, Int}
     edges::Vector{Vector{Pair{FreeGroupAutomorphism{T}, Word{T}}}}
 
     """
-        AutomorphismGraph(X::Basis, wordlength, automorphisms[; usecyclicwords=false])
+        SimpleAutomorphismGraph(X::Basis, wordlength, automorphisms[; usecyclicwords=true])
+
     Construct a graph with vertices either being all words or all cyclic words of the
     given word length; the directed edges are labeled by the automorphisms taking one
     word to another.
     """
-    function AutomorphismGraph(X::Basis{T};
+    function SimpleAutomorphismGraph(X::Basis{T};
                                wordlength::Int,
                                automorphisms=WhiteheadAutomorphisms(X);
-                               usecyclicwords=false) where {T}
+                               usecyclicwords=true) where {T}
         vertices = Vector{Word{T}}()
         vertex_indices = Dict{Word{T}, Int}()
         
         i = 1
-        for w ∈ Words(X.alphabet, wordlength)
-            if w ∉ vertices
+        for w ∈ Words(alphabet(X), wordlength)
+            if !usecyclicwords || w ∉ vertices
                 push!(vertices, w)
                 push!(vertex_indices, w => i)
                 i += 1
@@ -216,7 +216,7 @@ struct AutomorphismGraph{T} <: AbstractAutomorphismGraph{T}
         end
         for v ∈ vertices
             for σ ∈ automorphisms
-                t = cyclically_reduce(σ(v), X.alphabet)
+                t = cyclically_reduce(σ(v), alphabet(X))
                 if length(t) == wordlength
                     push!(edges[vertex_indices[v]], σ => t)
                 end
@@ -230,7 +230,7 @@ end
 """
 
 """
-struct TupleAutomorphismGraph{T} <: AbstractAutomorphismGraph{T}
+struct AutomorphismGraph{T} <: AbstractAutomorphismGraph{T}
     X::Basis{T}
     vertices::Vector{Vector{Word{T}}}
     wordlengths::Vector{Int}
@@ -245,10 +245,10 @@ struct TupleAutomorphismGraph{T} <: AbstractAutomorphismGraph{T}
         vertex_indices = Dict{Word{T}, Int}()
 
         i = 1
-        for w ∈ Words(X.alphabet, sum(wordlength))
+        for w ∈ Words(alphabet(X), sum(wordlength))
             v = splitbefore(w, wordlengths)
             for vᵢ ∈ v cyclically_reduce!(vᵢ, alphabet(X)) end
-            if v ∉ vertices
+            if !usecyclicwords || w ∉ vertices
                 push!(vertices, w)
                 push!(vertex_indices, w => i)
                 i += 1
@@ -319,14 +319,14 @@ function compose(τ::Vector{FreeGroupAutomorphism{T}}) where {T}
 end
 
 function whitehead_naive!(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
-    cyclically_reduce!(v, X.alphabet)
-    cyclically_reduce!(w, X.alphabet)
+    cyclically_reduce!(v, alphabet(X))
+    cyclically_reduce!(w, alphabet(X))
 
     v, S₁, _ = minimize!(v, X, automorphisms=WhiteheadAutomorphisms(X))
     w, _,  _ = minimize!(w, X, automorphisms=WhiteheadAutomorphisms(X))
 
     length(v) ≠ length(w) && return nothing
-    G = AutomorphismGraph(X; wordlength=length(v), automorphisms=WhiteheadAutomorphisms(X))
+    G = SimpleAutomorphismGraph(X; wordlength=length(v), automorphisms=WhiteheadAutomorphisms(X))
     return [connect_depthfirst(G, v, w); S₁]
 end
 
@@ -334,8 +334,8 @@ end
 
 """
 function whitehead_nielsenfirst!(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
-    cyclically_reduce!(v, X.alphabet)
-    cyclically_reduce!(w, X.alphabet)
+    cyclically_reduce!(v, alphabet(X))
+    cyclically_reduce!(w, alphabet(X))
 
     v, _, _  = minimize!(v, X, automorphisms=NielsenAutomorphisms(X))
     v, S₁, _ = minimize!(v, X, automorphisms=WhiteheadAutomorphisms(X))
@@ -344,10 +344,10 @@ function whitehead_nielsenfirst!(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
 
     length(v) ≠ length(w) && return nothing
 
-    G₁ = AutomorphismGraph(X; wordlength=length(v), automorphisms=NielsenAutomorphisms(X))
+    G₁ = SimpleAutomorphismGraph(X; wordlength=length(v), automorphisms=NielsenAutomorphisms(X))
     τ₁ = connect_depthfirst(G₁, v, w)
     if !isnothing(τ₁) return τ₁ end
-    G₂ = AutomorphismGraph(X; wordlength=length(v), automorphisms=WhiteheadAutomorphisms(X))
+    G₂ = SimpleAutomorphismGraph(X; wordlength=length(v), automorphisms=WhiteheadAutomorphisms(X))
     return [connect_depthfirst(G₂, v, w); S₁]
 end
 
@@ -355,15 +355,15 @@ end
 
 """
 function whitehead_nielsenonly!(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
-    cyclically_reduce!(v, X.alphabet)
-    cyclically_reduce!(w, X.alphabet)
+    cyclically_reduce!(v, alphabet(X))
+    cyclically_reduce!(w, alphabet(X))
 
     v, S₁, _ = minimize!(v, X, automorphisms=NielsenAutomorphisms(X))
     w, _,  _ = minimize!(w, X, automorphisms=NielsenAutomorphisms(X))
 
     length(v) ≠ length(w) && return nothing
 
-    G₁ = AutomorphismGraph(X; wordlength=length(v), automorphisms=NielsenAutomorphisms(X))
+    G₁ = SimpleAutomorphismGraph(X; wordlength=length(v), automorphisms=NielsenAutomorphisms(X))
     τ₁ = connect_depthfirst(G₁, v, w)
     return [τ₁; S₁]
 end

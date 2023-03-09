@@ -15,6 +15,7 @@ end
 Base.length(basis::Basis) = convert(Int, length(basis.alphabet) / 2)
 Base.getindex(basis::Basis, i) = basis.alphabet[i]
 alphabet(basis::Basis) = basis.alphabet
+letters(basis::Basis) = basis.alphabet.letters
 
 abstract type AbstractRelation{T} end
 
@@ -22,7 +23,7 @@ struct Relation{T} <: AbstractRelation{T}
 	relation::Pair{Word{T}, Word{T}}
 end
 
-struct FreeGroup{T} <: AbstractFinitelyPresentedGroup
+struct FinitelyPresentedGroup{T} <: AbstractFinitelyPresentedGroup
 	basis::Basis{T}
 	relations::Vector{<:AbstractRelation{T}}
 end

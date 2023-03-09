@@ -46,6 +46,6 @@ export FreeGroupAutomorphism, WhiteheadAutomorphisms, NielsenAutomorphisms,
 
 include("FreeGroups/WhiteheadsAlgorithm.jl")
 export whitehead_naive, whitehead_nielsenfirst, isprimitive_naive, isprimitive_nielsenfirst,
-       isprimitive_nielsenonly, AutomorphismGraph, edges, connect_depthfirst, compose, vertices
+       isprimitive_nielsenonly, SimpleAutomorphismGraph, edges, connect_depthfirst, compose, vertices
 
 end
