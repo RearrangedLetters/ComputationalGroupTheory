@@ -1,5 +1,3 @@
-using ComputationalGroupTheory
-
 @inline makeSymmetric!(s::GroupElement) = makeSymmetric!([s])
 
 @inline function makeSymmetric!(S::AbstractVector{<:GroupElement})

@@ -2,7 +2,7 @@ using ComputationalGroupTheory
 using Test
 using BenchmarkTools
 
-@testset "Test iterating over all words of fixed length" begin
+@testset "Test iterating over all words of fixed length (1)" begin
     A = alphabet"ab"
     words₁ = Vector{Word{Symbol}}()
     for word ∈ Words(A, 1) push!(words₁, word) end
@@ -13,10 +13,17 @@ using BenchmarkTools
                      word"ab", word"bb"]
 end
 
-A = Alphabet(:x, :X, :y)
+@testset "Test iterating over all words of fixed length (2)" begin
+    A = alphabet"abcd"
+    words = Vector{Word{Symbol}}()
+    for word ∈ Words(A, 3) push!(words, word) end
+    @test length(words) == length(Set(words)) == 4^3
+end
+
+const A = Alphabet(:x, :X, :y)
 setinverse!(A, :x, :X)
 
-B = symmetric_alphabet"xyz"
+const B = symmetric_alphabet"xyz"
 
 @testset "Word Macro" begin
     @test word"" == Word{Symbol}()
@@ -65,12 +72,12 @@ end
 end
 
 @testset "Cyclic Reduction" begin
-    A = symmetric_alphabet"ab"
+    A₂ = symmetric_alphabet"ab"
 
-    @test cyclically_reduce(word"aba", A) == word"aba"
-    @test cyclically_reduce(word"Aba", A) == word"b"
-    @test cyclically_reduce(word"bBabAAa", A) == word"b"
-    @test cyclically_reduce(word"abBA", A) == word""
+    @test cyclically_reduce(word"aba", A₂) == word"aba"
+    @test cyclically_reduce(word"Aba", A₂) == word"b"
+    @test cyclically_reduce(word"bBabAAa", A₂) == word"b"
+    @test cyclically_reduce(word"abBA", A₂) == word""
 end
 
 #=

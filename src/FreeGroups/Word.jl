@@ -1,5 +1,3 @@
-using ComputationalGroupTheory
-
 abstract type AbstractWord{T} <: AbstractVector{T} end
 
 Base.one(w::AbstractWord) = one(typeof(w))
@@ -60,7 +58,7 @@ function inv!(out::AbstractWord, w::AbstractWord, A::Alphabet)
 	resize!(out, length(w))
 	# for letter in reverse(w) allocate vector containing reversed w
 	for (i, letter) in enumerate(Iterators.reverse(w))
-		out[i] = inv(A, letter)
+		out[i] = inv(letter, A)
 	end
 	return out
 end
@@ -95,6 +93,13 @@ function issuffix(v::Word, w::Word)
 	length(v) <= length(w) || return false
 	for i ∈ 1:length(v)
 		v[i] == w[i] || return false
+	end
+	return true
+end
+
+function arecyclicallyequal(w::Vector{Word{T}}, v::Vector{Word{T}}) where {T}
+	for i ∈ 1:length(w)
+		if !arecyclicallyequal(w[i], v[i]) return false end
 	end
 	return true
 end
@@ -177,7 +182,7 @@ end
 
 function string_repr(w::AbstractWord, A::Alphabet)
     if isone(w)
-        return sprint(show, w)  # todo: sprint is probably wrong?
+        return print(show, w)
     else
         return join((A[idx] for idx in w), '·')
     end
@@ -186,7 +191,7 @@ end
 function freeRewriteV1!(w::Word, A::Alphabet)
     i = 1
 	@inbounds while i < length(w)
-		if hasinverse(A, w[i]) && inv(A, w[i]) == w[i + 1]
+		if hasinverse(A, w[i]) && inv(w[i], A) == w[i + 1]
 			mul!(w, Word(w[begin:(i - 1)]), Word(w[(i + 2):end]))
 			i = max(1, i - 1)
 		end
@@ -202,7 +207,7 @@ function freerewriteBV!(w::Word, A::Alphabet)
 	mask = trues(wordlength)
 	jump = collect(0:wordlength + 1)
 	while r ≤ wordlength
-		if hasinverse(A, w[l]) && inv(A, w[l]) == w[r]
+		if hasinverse(A, w[l]) && inv(w[l], A) == w[r]
 			mask[l] = false
 			mask[r] = false
 			jumpnext = jump[l] ≥ 1 ? jump[l] : r += 1
@@ -223,8 +228,6 @@ function freerewriteBV!(w::Word, A::Alphabet)
 	return w
 end
 
-cyclically_reduce(w::Word{T}, A::Alphabet{T}) where {T} = cyclically_reduce!(deepcopy(w), A)
-
 function cyclically_reduce!(w::Word{T}, A::Alphabet{T}) where {T}
 	freerewriteBV!(w, A)
 	i = 1
@@ -233,6 +236,15 @@ function cyclically_reduce!(w::Word{T}, A::Alphabet{T}) where {T}
 	end
 	return Word(w[i:(length(w) - i + 1)])
 end
+
+cyclically_reduce(w::Word{T}, A::Alphabet{T}) where {T} = cyclically_reduce!(deepcopy(w), A)
+
+function cyclically_reduce!(words::Vector{Word{T}}, A::Alphabet{T}) where {T}
+	for word ∈ words cyclically_reduce!(word, A) end
+	return words
+end
+
+cyclically_reduce(words::Vector{Word{T}}, A::Alphabet{T}) where {T} = cyclically_reduce!(deepcopy(words), A)
 
 # This is the version from the lecture
 function rewrite(
@@ -257,7 +269,7 @@ function rewrite!(v::Word, w::Word, A::Alphabet)
 	for l in w
 		if isone(v)
 			push!(v, l)
-		elseif hasinverse(A, v[end]) && inv(A, v[end]) == l
+		elseif hasinverse(A, v[end]) && inv(v[end], A) == l
 			resize!(v, length(v) - 1)
 		else
 			push!(v, l)
@@ -307,8 +319,8 @@ function Base.iterate(words::Words)
 	if isnothing(iteration)
 		return nothing
 	else
-		w, initialstate = iteration
-		return Word(collect(w)), initialstate
+		w, nextstate = iteration
+		return Word(collect(w)), nextstate
 	end
 end
 

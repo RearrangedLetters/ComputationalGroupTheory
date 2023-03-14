@@ -21,7 +21,7 @@ end
     @test length(automorphisms) == length(W) == 20
 end
 
-#= @testset "Whitehead Automorphisms Type I (1)" begin
+@testset "Whitehead Automorphisms Type I (1)" begin
     X = Basis(symmetric_alphabet"a")
     W = WhiteheadAutomorphismsTypeI(X)
     automorphisms = Vector{FreeGroupAutomorphism}()
@@ -61,10 +61,10 @@ end
     for σ ∈ W push!(automorphisms, σ) end
 
     @test length(automorphisms) == length(Set(automorphisms))
-    @test count == factorial(length(X)) * 2^length(X)
-end =#
+    @test length(automorphisms) == factorial(length(X)) * 2^length(X) == length(W)
+end
 
-#= @testset "Whitehead Automorphisms Type II (1)" begin
+@testset "Whitehead Automorphisms Type II (1)" begin
     X = Basis(symmetric_alphabet"a")
     W = WhiteheadAutomorphismsTypeII(X)
     automorphisms = Vector{FreeGroupAutomorphism}()
@@ -72,9 +72,7 @@ end =#
 
     @test length(automorphisms) == length(Set(automorphisms))
     @test length(automorphisms) == length(W) == 0
-    
-    @test FreeGroupAutomorphism(X, [word"a"]) ∈ automorphisms
-end =#
+end
 
 @testset "Whitehead Automorphisms Type II (2)" begin
     X = Basis(symmetric_alphabet"ab")
@@ -106,7 +104,17 @@ end
     @test length(automorphisms) == length(W) == 504
 end
 
-#= @testset "FreeGroupAutomorphism Test" begin
+@testset "Whitehead Automorphisms Type II (5)" begin
+    X = Basis(symmetric_alphabet"abcde")
+    W = WhiteheadAutomorphismsTypeII(X)
+    automorphisms = Vector{FreeGroupAutomorphism}()
+    for σ ∈ W push!(automorphisms, σ) end
+
+    @test length(automorphisms) == length(Set(automorphisms))
+    @test length(automorphisms) == length(W)
+end
+
+@testset "FreeGroupAutomorphism Test" begin
     X = symmetric_alphabet"abc"
     ε = Word{Symbol}()
 
@@ -137,6 +145,7 @@ end
 
     σ = FreeGroupAutomorphism(X, [word"a", word"c", word"b"])
     @test σ(ε) == ε
+    @test σ(word"aBbA") == ε
     @test σ(:a) == :a
     @test σ(:b) == :c
     @test σ(:c) == :b
@@ -157,11 +166,14 @@ end
 end
 
 @testset "Verify NielsenAutomorphisms (1)" begin
-    X = Alphabet(:𝟙, :𝟙⁻)
-    setinverse!(X, :𝟙, :𝟙⁻)
+    A = Alphabet(:𝟙, :𝟙⁻)
+    setinverse!(A, :𝟙, :𝟙⁻)
+    X = Basis(A)
 
     automorphisms = Vector{FreeGroupAutomorphism{Symbol}}()
     for σ ∈ NielsenAutomorphisms(X) push!(automorphisms, σ) end
+
+    @test length(automorphisms) == length(Set(automorphisms))
     @test length(automorphisms) == 1
     σ = first(automorphisms)
     @test σ(:𝟙)  == :𝟙⁻
@@ -170,13 +182,14 @@ end
 
 @testset "Verify NielsenAutomorphisms (2)" begin
     X = symmetric_alphabet"ab"
-    N = NielsenAutomorphisms(X)
+    N = NielsenAutomorphisms(Basis(X))
 
     automorphisms = Vector{FreeGroupAutomorphism{Symbol}}()
     for σ ∈ N
         push!(automorphisms, σ)
     end
     
+    @test length(automorphisms) == length(Set(automorphisms))
     @test length(automorphisms) == length(N)
     @test FreeGroupAutomorphism(X, [word"A",  word"b"]) ∈ automorphisms
     @test FreeGroupAutomorphism(X, [word"ba", word"b"]) ∈ automorphisms
@@ -192,8 +205,8 @@ end
 end
 
 @testset "Verify NielsenAutomorphisms (3)" begin
-    X₁ = symmetric_alphabet"abc"
-    X₂ = symmetric_alphabet"abcdefg"
+    X₁ = Basis(symmetric_alphabet"abc")
+    X₂ = Basis(symmetric_alphabet"abcdefg")
     N₁ = NielsenAutomorphisms(X₁)
     N₂ = NielsenAutomorphisms(X₂)
 
@@ -201,39 +214,13 @@ end
     for σ ∈ N₁
         push!(automorphisms₁, σ)
     end
+    @test length(automorphisms₁) == length(Set(automorphisms₁))
     @test length(automorphisms₁) == length(N₁)
 
     automorphisms₂ = Vector{FreeGroupAutomorphism{Symbol}}()
     for σ ∈ N₂
         push!(automorphisms₂, σ)
     end
+    @test length(automorphisms₂) == length(Set(automorphisms₂))
     @test length(automorphisms₂) == length(N₂)
-end =#
-
-#= @testset "Count Free Group Automorphisms 1" begin
-#=
-First we assert that the iteration protocol actually does the desired number
-of iterations. This number is not equal to the actual number of Whitehead
-automorphisms because the Nielsen automorphisms are covered twice.
-=#
-X₁ = symmetric_alphabet"a"
-number_of_automorphisms = length(WhiteheadAutomorphisms(X₁))
-@test number_of_automorphisms == 2
-whitehead_automorphisms = collect(WhiteheadAutomorphisms(X₁))
-id = whitehead_automorphisms[1]
-σ  = whitehead_automorphisms[2]
-@test id == FreeGroupAutomorphism(X₁, [word"a", word"A"])
-@test σ  == FreeGroupAutomorphism(X₁, [word"A", word"a"])
-end =#
-
-#= @testset "Count Free Group Automorphisms (2)" begin
-    X = symmetric_alphabet"a"
-    @info length(WhiteheadAutomorphisms(X))
-    W = Vector{FreeGroupAutomorphism{Symbol}}()
-    for σ ∈ WhiteheadAutomorphisms(X)
-        push!(W, σ)
-        @info σ
-    end
-    
-end =#
-
+end

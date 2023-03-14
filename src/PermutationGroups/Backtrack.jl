@@ -1,5 +1,3 @@
-using ComputationalGroupTheory
-
 """
     Vertex{V}
 Abstract type that defines a single function to get the content of type V of a vertex:

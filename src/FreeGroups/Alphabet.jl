@@ -1,5 +1,3 @@
-using ComputationalGroupTheory
-
 abstract type AbstractAlphabet{T} end
 
 struct Alphabet{T} <: AbstractAlphabet{T}
@@ -56,15 +54,15 @@ function setinverse!(A::Alphabet{T}, x::T, X::T) where {T}
     A.inverses[X] = x
 end
 
-Base.inv(A::Alphabet{T}, letter::T) where {T} = A.inverses[letter]
-Base.inv(A::Alphabet{T}, index::Integer) where {T} = A.inverses[letters[index]]
+Base.inv(letter::T, A::Alphabet{T}) where {T} = A.inverses[letter]
+Base.inv(index::Integer, A::Alphabet{T}) where {T} = A.inverses[letters[index]]
 
 hasinverse(A::Alphabet{T}, letter::T) where {T} = haskey(A.inverses, letter)
 hasinverse(A::Alphabet, index::Integer) = hasinverse(A, A[index])
 
 function isinverse(A::Alphabet{T}, letter₁::T, letter₂::T) where {T}
     if hasinverse(A, letter₁) && hasinverse(A, letter₂)
-        return inv(A, letter₁) == letter₂
+        return inv(letter₁, A) == letter₂
     else
         return false
     end
@@ -74,7 +72,7 @@ function Base.iterate(A::Alphabet, i=1)
     return if i > length(A) nothing else (A.letters[i], i + 1) end
 end
 
-Base.length(A) = length(A.letters)
+Base.length(A::Alphabet) = length(A.letters)
 
 function Base.show(io::IO, A::Alphabet{T}, oneliner=false) where {T}
     if oneliner
@@ -102,7 +100,7 @@ end
 """
     @symmetric_alphabet(string)
 
-Expects a string with all lowercase characters. Each character then is taken
+Expects a string with unique, all lowercase characters. Each character then is taken
 as a Symbol and it's inverse is set to be the uppercase form of the character.
 This string macro is compatible with the word macro in Word.jl
 
@@ -112,8 +110,7 @@ This string macro is compatible with the word macro in Word.jl
 """
 macro symmetric_alphabet_str(string::String)
     @assert all([islowercase(s) for s ∈ string])
-    unique_characters = collect(Set(string))
-    letters  = [Symbol(s) for s ∈ unique_characters]
-    inverses = [Symbol(s) for s ∈ uppercase.(unique_characters)]
+    letters  = [Symbol(s) for s ∈ string]
+    inverses = [Symbol(s) for s ∈ uppercase(string)]
     return :(Alphabet($letters, $inverses))
 end

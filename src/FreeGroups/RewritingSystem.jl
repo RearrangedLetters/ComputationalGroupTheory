@@ -1,5 +1,3 @@
-include("Ordering.jl")
-
 const Rule{W} = Pair{W, W} where {W <: AbstractWord}
 
 """

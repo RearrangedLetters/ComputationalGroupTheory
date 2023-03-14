@@ -1,4 +1,3 @@
-using ComputationalGroupTheory
 import Base.Order: lt, Ordering
 
 abstract type WordOrdering <: Ordering end

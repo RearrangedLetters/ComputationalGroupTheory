@@ -1,5 +1,4 @@
 abstract type AbstractFinitelyPresentedGroup <: Group end
-abstract type GroupElement end
 
 struct Basis{T} <: AbstractAlphabet{T}
     alphabet::Alphabet{T}
@@ -12,10 +11,12 @@ struct Basis{T} <: AbstractAlphabet{T}
     end
 end
 
-Base.length(basis::Basis) = convert(Int, length(basis.alphabet) / 2)
-Base.getindex(basis::Basis, i) = basis.alphabet[i]
 alphabet(basis::Basis) = basis.alphabet
+Base.getindex(basis::Basis, i) = alphabet(basis)[i]
+Base.length(basis::Basis) = convert(Int, length(alphabet(basis)) / 2)
 letters(basis::Basis) = basis.alphabet.letters
+Base.inv(x::T, basis::Basis{T}) where {T} = inv(x, alphabet(basis))
+Base.inv(w::Word{T}, basis::Basis{T}) where {T} = inv(w, alphabet(basis))
 
 abstract type AbstractRelation{T} end
 

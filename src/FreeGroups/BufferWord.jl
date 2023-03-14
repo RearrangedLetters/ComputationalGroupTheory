@@ -1,4 +1,3 @@
-
 struct Cell{T} where {T}
     elements::Vector{T}
     length::Integer  # number of _defined_ entries in elements

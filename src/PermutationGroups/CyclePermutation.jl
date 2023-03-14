@@ -1,5 +1,3 @@
-using ComputationalGroupTheory
-
 struct CyclePermutation <: AbstractPermutation
     cycles::Vector{Vector{Int}}
 
