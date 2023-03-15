@@ -4,10 +4,13 @@ Base.one(w::AbstractWord) = one(typeof(w))
 isone(w::AbstractWord) = iszero(length(w))
 
 function Base.:*(w::AbstractWord, v::AbstractWord)
-	return mul!(one(w), w, v)  # this is an interface function
+	return mul!(one(w), w, v)
 end
 
-mutable struct Word{T} <: AbstractWord{T}  # todo: mutable is probably not necessary here
+@doc """
+
+"""
+mutable struct Word{T} <: AbstractWord{T}
 	letters::Vector{T}
 
 	function Word(letters::Vector{T}) where {T}
@@ -56,7 +59,6 @@ Base.inv(w::AbstractWord{T}, A::Alphabet) where {T} = inv!(similar(w), w, A)
 
 function inv!(out::AbstractWord, w::AbstractWord, A::Alphabet)
 	resize!(out, length(w))
-	# for letter in reverse(w) allocate vector containing reversed w
 	for (i, letter) in enumerate(Iterators.reverse(w))
 		out[i] = inv(letter, A)
 	end
@@ -81,6 +83,9 @@ Base.push!(w::Word{T}, l::T) where {T} = push!(w.letters, l)
 Base.first(w::Word) = first(w.letters)
 Base.last(w::Word) = last(w.letters)
 
+@doc """
+
+"""
 function isprefix(v::Word, w::Word)
 	length(v) ≤ length(w) || return false
 	for i ∈ 1:length(v)
@@ -89,6 +94,9 @@ function isprefix(v::Word, w::Word)
 	return true
 end
 
+@doc """
+
+"""
 function issuffix(v::Word, w::Word)
 	length(v) <= length(w) || return false
 	for i ∈ 1:length(v)
@@ -97,6 +105,9 @@ function issuffix(v::Word, w::Word)
 	return true
 end
 
+@doc """
+
+"""
 function arecyclicallyequal(w::Vector{Word{T}}, v::Vector{Word{T}}) where {T}
 	for i ∈ 1:length(w)
 		if !arecyclicallyequal(w[i], v[i]) return false end
@@ -140,14 +151,14 @@ function mul!(out::AbstractWord, w::AbstractWord, v::AbstractWord)
 	return out
 end
 
-"""
+@doc """
 Replace all occurences of the letter l in w with the word v
 """
 function replace_letter!(w::Word{T}, x::T, v::Word{T}) where {T}
 	return replace_all!(w, [x], [v])
 end
 
-"""
+@doc """
 Sequentially replace 
 """
 function replace_all!(w::Word{T}, X::Vector{T}, V::Vector{Word{T}}) where {T}
@@ -188,6 +199,9 @@ function string_repr(w::AbstractWord, A::Alphabet)
     end
 end
 
+@doc """
+
+"""
 function freeRewriteV1!(w::Word, A::Alphabet)
     i = 1
 	@inbounds while i < length(w)
@@ -200,6 +214,9 @@ function freeRewriteV1!(w::Word, A::Alphabet)
 	return w
 end
 
+@doc """
+
+"""
 function freerewriteBV!(w::Word, A::Alphabet)
 	wordlength = length(w)
 	wordlength ≥ 2 || return w
@@ -228,6 +245,7 @@ function freerewriteBV!(w::Word, A::Alphabet)
 	return w
 end
 
+@doc (@doc cyclically_reduce(::Word{T}, ::Alphabet{T}) where {T})
 function cyclically_reduce!(w::Word{T}, A::Alphabet{T}) where {T}
 	freerewriteBV!(w, A)
 	i = 1
@@ -237,16 +255,25 @@ function cyclically_reduce!(w::Word{T}, A::Alphabet{T}) where {T}
 	return Word(w[i:(length(w) - i + 1)])
 end
 
+@doc """
+
+"""
 cyclically_reduce(w::Word{T}, A::Alphabet{T}) where {T} = cyclically_reduce!(deepcopy(w), A)
 
+@doc (@doc cyclically_reduce(::Vector{Word{T}}, ::Alphabet{T}) where {T})
 function cyclically_reduce!(words::Vector{Word{T}}, A::Alphabet{T}) where {T}
 	for word ∈ words cyclically_reduce!(word, A) end
 	return words
 end
 
+@doc """
+
+"""
 cyclically_reduce(words::Vector{Word{T}}, A::Alphabet{T}) where {T} = cyclically_reduce!(deepcopy(words), A)
 
-# This is the version from the lecture
+@doc """
+
+"""
 function rewrite(
     w::W,
     rewriting,
@@ -278,8 +305,8 @@ function rewrite!(v::Word, w::Word, A::Alphabet)
     return v
 end
 
-"""
-splitbefore(w::Word, splitting_points)
+@doc """
+	splitbefore(w::Word, splitting_points)
 
 Get a list of words by splitting w into subwords defined by the wordlengths.
 
@@ -297,12 +324,18 @@ function splitbefore(w::Word{T}, wordlengths::Vector{Int}) where {T}
     return position - 1 == length(w) ? wordlist : push!(wordlist, w[position:end])
 end
 
+@doc """
+
+"""
 macro word_str(string::String)
 	length(string) == 0 && return Word{Symbol}()
 	letters = [Symbol(s) for s in string]
 	return :(Word($letters))
 end
 
+@doc """
+
+"""
 struct Words{T}
     A::Alphabet{T}
     wordlength::Int
@@ -314,6 +347,9 @@ struct Words{T}
     end
 end
 
+@doc """
+
+"""
 function Base.iterate(words::Words)
 	iteration = iterate(words.iterator)
 	if isnothing(iteration)
@@ -324,6 +360,7 @@ function Base.iterate(words::Words)
 	end
 end
 
+@doc (@doc iterate(::Words))
 function Base.iterate(words::Words, state)
     iteration = iterate(words.iterator, state)
 	if isnothing(iteration)
@@ -334,19 +371,17 @@ function Base.iterate(words::Words, state)
 	end
 end
 
-"""
+@doc """
     CyclicWords(A, wordlength)
 
-	Provide an interface to an iterator for some cyclically distinct words over
-	given letters in canonical form.
+Provide an interface to an iterator for some cyclically distinct words over
+given letters in canonical form.
 
-	This is currently not fully implemented. The algorithm misses a lot of words.
+This is currently not fully implemented. The algorithm misses a lot of words.
 
-	# Examples
-	Let A = [a, b] and wordlength = 3. Then the words produced are:
-	aaa, aab, abb, bbb.
-
-
+# Examples
+Let A = [a, b] and wordlength = 3. Then the words produced are:
+aaa, aab, abb, bbb.
 """
 struct CyclicWords{T}
 	letters::Vector{T}
@@ -366,6 +401,9 @@ struct CyclicWords{T}
 	end 
 end
 
+@doc """
+
+"""
 function word_frompartition(letters::Vector{T},
 						    partition::Vector{Int},
 							wordlength=sum(partition)::Int) where {T}
@@ -383,12 +421,16 @@ function word_frompartition(letters::Vector{T},
 	return out
 end
 
+@doc """
+
+"""
 function Base.iterate(cyclicwords::CyclicWords)
 	partition = iterate(cyclicwords.partition_iterator)
 	isnothing(partition) && return nothing
 	return iterate(cyclicwords, (partition[1], permutation))
 end
 
+@doc (@doc iterate(::CyclicWords))
 function Base.iterate(cyclicwords::CyclicWords, state)
 	partition, permutation = state
 	if !isnothing(partition)

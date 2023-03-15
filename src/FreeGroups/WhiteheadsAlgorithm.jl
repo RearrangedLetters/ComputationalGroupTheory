@@ -1,14 +1,14 @@
 using Combinatorics
 
-"""
+@doc """
     whitehead_reduce(w::Vector{Word}, X::Basis [; automorphisms=WhiteheadAutomorphisms(X)])
 
-Attempt to reduce the combined length of the given words in w with the automorphisms with respect
-to the given free group basis X. If the reduction has been successful, the shortened word, the
-shortening automorphism and true is returned, indicating that the new word is indeed shorter.
+Attempt to reduce the combined length of the given words in w with the given automorphisms with
+respect to the given free group basis X. If the reduction has been successful, the shortened word,
+the shortening automorphism and true is returned (indicating that the new word is indeed shorter).
 Otherwise, the original word, nothing and false are returned as no automorphism could be found.
 By default, the Whitehead autormorphisms are being used, as they guarentee that a minimizing
-automorphism will be found if and only iff there is one.
+automorphism will be found if and only if there is one.
 """
 function whitehead_reduce(w::Vector{Word{T}}, X::Basis{T}; automorphisms=WhiteheadAutomorphisms(X)) where {T}
     startlength = sum(length.(w))
@@ -19,10 +19,10 @@ function whitehead_reduce(w::Vector{Word{T}}, X::Basis{T}; automorphisms=Whitehe
             return v, σ, true
         end
     end
-    return w, nothing, false
+    return deepcopy(w), nothing, false
 end
 
-"""
+@doc """
     whitehead_reduce(w::Word, X::Basis, automorphisms [; automorphisms=WhiteheadAutomorphisms(X)])
 
 Attempt to reduce the length of the given word w once with the automorphisms with respect
@@ -30,60 +30,56 @@ to the given free group basis X. If the reduction has been successful, the short
 shortening automorphism and true is returned, indicating that the new word is indeed shorter.
 Otherwise, the original word, nothing and false are returned as no automorphism could be found.
 By default, the Whitehead autormorphisms are being used, as they guarentee that a word of minimal
-length will be found.
+length will be found if and only if there is one.
 """
 function whitehead_reduce(w::Word{T}, X::Basis{T}; automorphisms=WhiteheadAutomorphisms(X)) where {T}
-    v, σ, has_been_shortened = whitehead_reduce([w], X; automorphisms=automorphisms)
-    return v..., σ, has_been_shortened
+    v, σ, has_been_reduced = whitehead_reduce([w], X; automorphisms=automorphisms)
+    return v..., σ, has_been_reduced
 end
 
-"""
+@doc """
     minimize!(w::Vector{Word{T}}, X::Basis{T} [; automorphisms=WhiteheadAutomorphisms(X)])
 
 Attempt to minimize the combined length of the given words in w with the automorphisms with respect
 to the given free group basis X. If the reduction has been successful, the shortened word, the
-shortening automorphism(s) S and true is returned, indicating that the new word is indeed shorter.
+shortening automorphism(s) Σ and true is returned, indicating that the new word is indeed shorter.
 Otherwise, the original word, nothing and false are returned as no automorphism could be found.
 By default, the Whitehead autormorphisms are being used, as they guarentee that a word of minimal
 length will be found.
-S is a list of automorphisms whose composition will reduce w to an automorphically equivalent word
+Σ is a list of automorphisms whose composition will reduce w to an automorphically equivalent word
 list of minimal length (under autormophisms).
 """
 function minimize!(w::Vector{Word{T}}, X::Basis{T}; automorphisms=WhiteheadAutomorphisms(X)) where {T}
-    has_been_shortened = false
-    S = Vector{FreeGroupAutomorphism{T}}()
+    has_been_reduced = false
+    Σ = Vector{FreeGroupAutomorphism{T}}()
     while true
-        w, σ, has_been_shortened = whitehead_reduce(w, X, automorphisms=automorphisms)
-        if has_been_shortened
-            push!(S, σ)
+        w, σ, has_been_reduced = whitehead_reduce(w, X, automorphisms=automorphisms)
+        if has_been_reduced
+            push!(Σ, σ)
         else
             break
         end
     end
-    return w, S, has_been_shortened
+    return w, Σ, has_been_shortened
 end
 
-"""
+@doc """
     minimize!(w::Word{T}, X::Basis{T} [; automorphisms=WhiteheadAutomorphisms(X)])
 
 Attempt to minimize the length of the given word w with the automorphisms with respect
 to the given free group basis X. If the reduction has been successful, the shortened word, the
-shortening automorphism(s) S and true is returned, indicating that the new word is indeed shorter.
+shortening automorphism(s) Σ and true is returned, indicating that the new word is indeed shorter.
 Otherwise, the original word, nothing and false are returned as no automorphism could be found.
 By default, the Whitehead autormorphisms are being used, as they guarentee that a word of minimal
 length will be found.
-S is a list of automorphisms whose composition will reduce w to an automorphically equivalent word
+Σ is a list of automorphisms whose composition will reduce w to an automorphically equivalent word
 of minimal length (under autormophisms).
 """
 function minimize!(w::Word{T}, X::Basis{T}; automorphisms=WhiteheadAutomorphisms(X)) where {T}
-    w, S, has_been_minimized = minimize!([w], X; automorphisms=automorphisms)
-    return w..., S, has_been_minimized
+    w, Σ, has_been_minimized = minimize!([w], X; automorphisms=automorphisms)
+    return w..., Σ, has_been_minimized
 end
 
-"""
-    AbstractAutomorphismGraph{T}
-Define an interface to a graph 
-"""
 abstract type AbstractAutomorphismGraph{T} end
 
 vertexindex(G::AbstractAutomorphismGraph{T}, w::Vector{Word{T}}) where {T} = G.vertex_indices[w]
@@ -94,23 +90,25 @@ edges(G::AbstractAutomorphismGraph) = G.edges
 wordlength(G::AbstractAutomorphismGraph) = length.(first(G.vertices))
 typeof(::AbstractAutomorphismGraph{T}) where {T} = T
 
-"""
+@doc """
     edges(G, v)
 
-Return the outgoing edges from v ∈ G.
-
+Return the outgoing edges of v ∈ G. The caller is responsible for calling this function with
+a vertex in the graph, otherwise an error is thrown and an empty result of the correct type
+is returned.
 """
-function edges(G::AbstractAutomorphismGraph, v)
+function edges(G::AbstractAutomorphismGraph{T}, v) where {T}
     if haskey(G.vertex_indices, v)
         return G.edges[G.vertex_indices[v]]
     end
     @error "Vertex not in graph!"
+    return Tuple{FreeGroupAutomorphism{T}, Vector{Word{T}}}[]
 end
 
-"""
+@doc """
     edges(G, v, w)
 
-Return all edges (σ, w) ∈ G leading from v to w. An edge is in the graph, iff σ(v) = w.
+Return all edges (σ, w) ∈ G leading from v to w. An edge is in the graph iff σ(v) = w.
 Possibly return multiple edges, as the automorphism graph is a multi-graph.
 """
 function edges(G::AbstractAutomorphismGraph{T}, v::Vector{Word{T}}, w::Vector{Word{T}}) where {T}
@@ -120,11 +118,12 @@ function edges(G::AbstractAutomorphismGraph{T}, v::Vector{Word{T}}, w::Vector{Wo
     @error "Vertex $v not in graph!"
 end
 
+@doc (@doc edges(::AbstractAutomorphismGraph{T}, ::Vector{Word{T}}, ::Vector{Word{T}}) where {T})
 function edges(G::AbstractAutomorphismGraph{T}, v::Word{T}, w::Word{T}) where {T}
     return edges(G, [v], [w])
 end
 
-"""
+@doc """
     ∈(w::Word, G::AbstractAutomorphismGraph)
 
 Return if w (understood as a cyclic word) is among the vertices of G.
@@ -137,9 +136,10 @@ function Base.in(w::Vector{Word{T}}, G::AbstractAutomorphismGraph{T}) where {T}
     return false
 end
 
+@doc (@doc in(::Vector{Word{T}}, ::AbstractAutomorphismGraph{T}) where {T})
 Base.in(w::Word{T}, G::AbstractAutomorphismGraph{T}) where {T} = [w] ∈ G
 
-"""
+@doc """
     ∈(w::Word, G::AbstractAutomorphismGraph)
 
 Decide if w (understood as a cyclic word) is in G.
@@ -151,7 +151,7 @@ function Base.in(w::Word{T}, words::Vector{Word{T}}) where {T}
     return false
 end
 
-"""
+@doc """
     ∈(edge, edges)
 
 Check if the given edge is among the given edges.
@@ -165,8 +165,10 @@ function Base.in(edge::Pair{FreeGroupAutomorphism{T}, Word{T}},
     return false
 end
 
-"""
-
+@doc """
+A multi graph with vertives representing tuples of (possibly) cyclic words and directed
+edges labeled by automorphisms taking the words of one vertex componentwise to the other
+vertex.
 """
 struct AutomorphismGraph{T} <: AbstractAutomorphismGraph{T}
     X::Basis{T}
@@ -215,7 +217,7 @@ struct AutomorphismGraph{T} <: AbstractAutomorphismGraph{T}
     end
 end
 
-"""
+@doc """
     connect_depthfirst(G::AbstractAutomorphismGraph, s::Word, t::Word)
 
 Use a depth first search to find a path from s to t. The reverse composition of the
@@ -233,6 +235,7 @@ function connect_depthfirst(G::AbstractAutomorphismGraph{T}, s::Vector{Word{T}},
     return connect_depthfirst!(G, s, t, visited, FreeGroupAutomorphism{T}[])
 end
 
+@doc (@doc connect_depthfirst)
 function connect_depthfirst!(G::AbstractAutomorphismGraph{T}, s::Vector{Word{T}}, t::Vector{Word{T}},
                             visited::BitVector, τ::Vector{FreeGroupAutomorphism{T}}) where {T}
     s == t && return τ
@@ -249,15 +252,16 @@ function connect_depthfirst!(G::AbstractAutomorphismGraph{T}, s::Vector{Word{T}}
     return reverse!(τ)
 end
 
+@doc (@doc connect_depthfirst)
 function connect_depthfirst(G::AbstractAutomorphismGraph{T}, s::Word{T}, t::Word{T}) where {T}
     return connect_depthfirst(G, [s], [t])
 end
 
-"""
+@doc """
     compose(τ::Vector{FreeGroupAutomorphism})
 
-Compose the list of automorphisms returned by connect_depthfirst into a single
-automorphism.
+Compose the list of automorphisms returned by connect_depthfirst or minimize into a single
+automorphism. The resulting images might exhibit exponential length.
 """
 function compose(τ::Vector{FreeGroupAutomorphism{T}}) where {T}
     if isempty(τ) 
@@ -267,101 +271,102 @@ function compose(τ::Vector{FreeGroupAutomorphism{T}}) where {T}
     end
 end
 
+@doc (@doc whitehead_naive(::Vector{Word{T}}, ::Vector{Word{T}}, ::Basis{T}) where {T})
 function whitehead_naive!(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis{T}) where {T}
     cyclically_reduce!(v, alphabet(X))
     cyclically_reduce!(w, alphabet(X))
 
-    v, S, _ = minimize!(v, X, automorphisms=WhiteheadAutomorphisms(X))
-    w, _,  _ = minimize!(w, X, automorphisms=WhiteheadAutomorphisms(X))
+    v, σ₁, _ = minimize!(v, X, automorphisms=WhiteheadAutomorphisms(X))
+    w, σ₂, _ = minimize!(w, X, automorphisms=WhiteheadAutomorphisms(X))
 
     length.(v) ≠ length.(w) && return FreeGroupAutomorphism{T}[]
     G = AutomorphismGraph(X; wordlengths=length.(v), automorphisms=WhiteheadAutomorphisms(X))
     τ = connect_depthfirst(G, v, w)
-    if isnothing(τ)
-        return false, S
-    else
-        return true, [τ; S]
-    end
+    return !isnothing(τ), σ₁, σ₂, τ
 end
 
+@doc (@doc whitehead_naive(::Vector{Word{T}}, ::Vector{Word{T}}, ::Basis{T}) where {T})
 function whitehead_naive!(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
     return whitehead_naive!([v], [w], X)
 end
 
-"""
+@doc """
 
 """
 function whitehead_nielsenfirst!(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis{T}) where {T}
     cyclically_reduce!(v, alphabet(X))
     cyclically_reduce!(w, alphabet(X))
 
-    v, _, _  = minimize!(v, X, automorphisms=NielsenAutomorphisms(X))  # todo: this S is also important for the result
-    v, S, _  = minimize!(v, X, automorphisms=WhiteheadAutomorphisms(X))  # todo: in all these methods we should also return a minimizing auto for the second word
-    w, _, _  = minimize!(w, X, automorphisms=NielsenAutomorphisms(X))
+    v, σ₁₁, _  = minimize!(v, X, automorphisms=NielsenAutomorphisms(X))
+    v, σ₁₂, _  = minimize!(v, X, automorphisms=WhiteheadAutomorphisms(X))
+    w, σ₂₁, _  = minimize!(w, X, automorphisms=NielsenAutomorphisms(X))
     if length(w) ≠ length(v)
-        w, _, _  = minimize!(w, X, automorphisms=WhiteheadAutomorphisms(X))
+        w, σ₂₂, _  = minimize!(w, X, automorphisms=WhiteheadAutomorphisms(X))
     end
 
     length.(v) ≠ length.(w) && return false, FreeGroupAutomorphism{T}[]
 
+    σ₁ = [σ₁₂; σ₁₁]
+    σ₂ = [σ₂₂; σ₂₁]
+
     G₁ = AutomorphismGraph(X; wordlengths=length.(v), automorphisms=NielsenAutomorphisms(X))
     τ₁ = connect_depthfirst(G₁, v, w)
-    if !isnothing(τ₁) return true, [τ₁; S] end
+    if !isnothing(τ₁) return true, σ₁, σ₂, τ₁ end
     G₂ = AutomorphismGraph(X; wordlengths=length.(v), automorphisms=WhiteheadAutomorphisms(X))
     τ₂ = connect_depthfirst(G₂, v, w)
-    if isnothing(τ₂)
-        return false, FreeGroupAutomorphism{T}[]
-    else
-        return true, [τ₂; S]
-    end
+    return !isnothing(τ₂), σ₁, σ₂, τ₂
 end
 
+@doc (@doc whitehead_nielsenfirst(::Vector{Word{T}}, ::Vector{Word{T}}, ::Basis{T}) where {T})
 function whitehead_nielsenfirst!(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
     return whitehead_nielsenfirst!([v], [w], X)
 end
 
-"""
+@doc """
 
 """
 function whitehead_nielsenonly!(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis{T}) where {T}
     cyclically_reduce!(v, alphabet(X))
     cyclically_reduce!(w, alphabet(X))
 
-    v, S, _ = minimize!(v, X, automorphisms=NielsenAutomorphisms(X))
-    w, _,  _ = minimize!(w, X, automorphisms=NielsenAutomorphisms(X))
+    v, σ₁, _ = minimize!(v, X, automorphisms=NielsenAutomorphisms(X))
+    w, σ₂, _ = minimize!(w, X, automorphisms=NielsenAutomorphisms(X))
 
     length.(v) ≠ length.(w) && return FreeGroupAutomorphism{T}[]
 
     G = AutomorphismGraph(X; wordlengths=length.(v), automorphisms=NielsenAutomorphisms(X))
     τ = connect_depthfirst(G, v, w)
-    if isnothing(τ)
-        return false, S
-    else
-        return true, [τ; S]
-    end
+    return !isnothing(τ), σ₁, σ₂, τ
 end
 
 function whitehead_nielsenonly!(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
     return whitehead_nielsenonly!([v], [w], X)
 end
 
-"""
+@doc """
     whitehead_naive(v::Word, w::Word, X::Basis)
 
-Attempt to find an automorphism τ of the free group with basis X, which maps
-the word v to w. The minimization strategy uses the Whitehead autormophisms.
-Return a list of these automorphisms such that their composition τ takes v to w,
-or nothing if no such τ exists.
+Implements Whitehead's algorithm by using all Whitehead automorphisms.
+
+Decide, if there is an automorphism carrying v to w. If such an automorphism exists,
+return (true, σ₁, σ₂, τ) such that τ(σ₁(v)) = σ₂(w). The automorphisms σ₁ & σ₂ minimize
+the lengths of v and w respectively; τ maps one minimized word to the other.
+If no automorphism carrying v to w exists, then (false, σ₁, σ₂, nothing) is returned.
+Here again are v and w minimized by σ₁ & σ₂ respectively.
+
+This version of Whitehead's algorithm has exponential time & memory requirement, consider
+using whitehead_nielsenfirst(v, w, X) instead.
 """
 function whitehead_naive(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis{T}) where {T}
     return whitehead_naive!(deepcopy(v), deepcopy(w), X)
 end
 
+@doc (@doc whitehead_naive(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis{T}))
 function whitehead_naive(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
     return whitehead_naive!([deepcopy(v)], [deepcopy(w)], X)
 end
 
-"""
+@doc """
     whitehead_nielsenfirst(v::Word, w::Word, X::Basis)
 
 Attempt to find an automorphism of the free group with basis X, which maps
@@ -374,26 +379,28 @@ function whitehead_nielsenfirst(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis
     return whitehead_nielsenfirst!(deepcopy(v), deepcopy(w), X)
 end
 
+@doc (@doc whitehead_nielsenfirst(::Vector{Word{T}}, ::Vector{Word{T}}, ::Basis{T}) where {T})
 function whitehead_nielsenfirst(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
     return whitehead_nielsenfirst!([deepcopy(v)], [deepcopy(w)], X)
 end
 
-"""
+@doc """
     whitehead_nielsenonly(v::Word, w::Word, X::Basis)
 
 Attempt to find an automorphism of the free group with basis X, which maps
 the word v to w. The minimization strategy uses only Nielsen automorphisms.
-The result might not always be correct. todo: Check this and maybe @warn
+The result might not always be correct.
 """
 function whitehead_nielsenonly(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis{T}) where {T}
     return whitehead_nielsenonly!(deepcopy(v), deepcopy(w), X)
 end
 
+@doc (@doc whitehead_nielsenonly(::Vector{Word{T}}, ::Vector{Word{T}}, ::Basis{T}) where {T})
 function whitehead_nielsenonly(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
     return whitehead_nielsenonly!([deepcopy(v)], [deepcopy(w)], X)
 end
 
-"""
+@doc """
     isprimitive_naive(w::Word, X)
 
 Decide, if w is primitive in the free group with basis X using Whitehead automorphisms.
@@ -404,7 +411,7 @@ function isprimitive_naive(w::Word{T}, X::Basis{T}) where {T}
     return length(v) == 1
 end
 
-"""
+@doc """
     isprimitive_nielsenfirst(w::Word, X)
 
 Decide, if w is primitive in the free group with basis X using Nielsen automorphisms
@@ -418,20 +425,19 @@ function isprimitive_nielsenfirst(w::Word{T}, X::Basis{T}) where {T}
     return length(v) == 1
 end
 
-"""
+@doc """
     isprimitive_nielsenonly(w::Word, X)
 
 Decide, if w is primitive in the free group with basis X using only Nielsen automorphisms.
 The result might not be correct, but at least is with high probability.
 """
 function isprimitive_nielsenonly(w::Word{T}, X::Basis{T}) where {T}
-    @warn "The result of isprimitive_nielsenonly is not always correct."
     if length(w) == 1 return true elseif length(w) == 0 return false end
     v, _, _ = minimize!(deepcopy(w), X; automorphisms=NielsenAutomorphisms(X))
     return length(v) == 1
 end
 
-"""
+@doc """
     isprimitive(w::Word, X)
 
 Decide, if w is primitive in the free group with basis X using the most practical
@@ -439,6 +445,9 @@ version of Whitehead's algorithm.
 """
 isprimitive = isprimitive_nielsenfirst
 
+@doc """
+    whitehead(w::Word, v::Word, X::Basis)
+"""
 whitehead = whitehead_nielsenfirst
 
 """

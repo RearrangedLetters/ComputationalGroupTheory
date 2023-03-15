@@ -15,7 +15,7 @@ const A = word"A"
 const b = word"b"
 const B = word"B"
 
-T = Alphabet(:𝟙, :𝟙⁻)
+const T = Alphabet(:𝟙, :𝟙⁻)
 setinverse!(T, :𝟙, :𝟙⁻)
 const X = Basis(T)
 
@@ -55,7 +55,7 @@ end
     @test !isprimitive_naive(word"", Y)
     @test !isprimitive_naive(word"", Z)
     
-    @profview isprimitive_naive(word"a", Y)
+    @test isprimitive_naive(word"a", Y)
     @test isprimitive_naive(word"ab", Y)
     
     @test !isprimitive_naive(word"ABab", Y)
@@ -210,26 +210,4 @@ end
     @test w₂ == word"a"
     @test σ₂ == FreeGroupAutomorphism(Y₂, [word"a", word"bA", word"A", word"aB"])
     @test has_been_reduced₁
-end
-
-@testset "Automorphism Graph (2)" begin
-    Y₂ = symmetric_alphabet"ab"
-
-    G = AutomorphismGraph(Y₂, wordlengths=2)
-    # Vertices:
-    #   :a:a, :a:A, :a:b, :a:B,
-    #   :b:a, :b:A, :b:b, :b:B
-    #   :A:a, :A:A, :A:b, :A:B,
-    #   :B:a, :B:A, :B:b, :B:B,
-    @test order(G) == 16
-
-    @test size(G)  == 16 + k
-end
-
-@testset "Automorphism Graph (3)" begin
-    Y₂ = Basis(symmetric_alphabet"abc")
-
-    G = AutomorphismGraph(Y₂, wordlengths=3)
-    @test order(G) == 1
-    @test size(G)  == 1
 end
