@@ -49,11 +49,12 @@ export MatrixGroup
 
 include("FreeGroups/FreeGroupAutomorphism.jl")
 export FreeGroupAutomorphism, WhiteheadAutomorphisms, NielsenAutomorphisms,
-       WhiteheadAutomorphismsTypeI, WhiteheadAutomorphismsTypeII, Basis
+       WhiteheadAutomorphismsTypeI, WhiteheadAutomorphismsTypeII, Basis, compo,
+       cyclically_reduce!, cyclically_reduce, apply
 
 include("FreeGroups/WhiteheadsAlgorithm.jl")
 export whitehead_naive, whitehead_nielsenfirst, isprimitive_naive, isprimitive_nielsenfirst,
        isprimitive_nielsenonly, AutomorphismGraph, edges, connect_depthfirst, compose, vertices,
-       isprimitive
+       isprimitive, whitehead_reduce, minimize!
 
 end

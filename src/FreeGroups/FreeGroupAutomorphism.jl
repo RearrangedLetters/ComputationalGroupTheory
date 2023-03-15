@@ -5,8 +5,8 @@ An interface for free group automorphisms. Each implementation should
 implement the following functions
     • basis(<:AbstractFreeGroupAutomorphism) which is the ordered list of letters on which the automorphism acts
     • images(<:AbstractFreeGroupAutomorphism), the image of the i-th element in the basis
-    • (σ<:AbstractFreeGroupAutomorphism)(x::T) evaluates to σ(x)
-    • (σ<:AbstractFreeGroupAutomorphism)(w::Word{T}) evaluates to σ(w)
+    • (σ<:AbstractFreeGroupAutomorphism)(x::T) evaluates to the word σ(x)
+    • (σ<:AbstractFreeGroupAutomorphism)(w::Word{T}) evaluates to the word σ(w)
 """
 abstract type AbstractFreeGroupAutomorphism{T} end
 
@@ -73,8 +73,41 @@ end
 function (σ::FreeGroupAutomorphism{T})(w::Word{T}) where {T}
     return freerewriteBV!(apply!(σ, Base.copy(w)), alphabet(σ))
 end
+
 (σ::FreeGroupAutomorphism{T})(x::T) where {T} = σ(Word(x))
 
+function compose(σ::FreeGroupAutomorphism{T}, τ::FreeGroupAutomorphism{T}) where {T}
+    X = basis(σ)
+    images = [cyclically_reduce!(σ(τ(X[i])), alphabet(X)) for i ∈ 1:length(X)]
+    return FreeGroupAutomorphism(basis(σ), images)
+end
+
+@doc """
+    compose(τ::Vector{FreeGroupAutomorphism})
+
+Compose the list of automorphisms into a single automorphism.
+The resulting images might exhibit exponential length.
+"""
+function compose(τ::Vector{FreeGroupAutomorphism{T}}) where {T}
+        if isempty(τ)
+            return FreeGroupAutomorphism{T}()
+        else
+            X = basis(first(τ))
+            return foldr(compose, τ; init=FreeGroupAutomorphism(X))
+        end
+end
+
+function apply(Σ::Vector{FreeGroupAutomorphism{T}}, word::Vector{Word{T}}) where {T}
+    word′ = Base.copy(word)
+    for σ ∈ reverse(Σ)
+        for (i, w) ∈ enumerate(word′)
+            word′[i] = σ(w)
+        end
+    end
+    return word′
+end
+
+apply(Σ::Vector{FreeGroupAutomorphism{T}}, word::Word{T}) where {T} = apply(Σ, [word])[1]
 
 @doc """
     inv(σ::FreeGroupAutomorphism)
@@ -82,7 +115,11 @@ end
 Return σ⁻¹, the inverse automorphism.
 """
 function Base.inv(σ::FreeGroupAutomorphism{T}) where {T}
-    return compose(whitehead_nielsenfirst(σ.images, X[begin:length(basis(σ))], basis(σ)))
+    X = basis(σ)
+    id = [Word(X[i]) for i ∈ 1:length(X)]
+    success, σ₁, _, τ = whitehead(σ.images, id, X)
+    @assert success
+    return compose([τ; σ₁])
 end
 
 @doc """

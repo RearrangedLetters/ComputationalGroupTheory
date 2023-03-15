@@ -9,6 +9,7 @@ the shortening automorphism and true is returned (indicating that the new word i
 Otherwise, the original word, nothing and false are returned as no automorphism could be found.
 By default, the Whitehead autormorphisms are being used, as they guarentee that a minimizing
 automorphism will be found if and only if there is one.
+Always returns a cyclically reduced word.
 """
 function whitehead_reduce(w::Vector{Word{T}}, X::Basis{T}; automorphisms=WhiteheadAutomorphisms(X)) where {T}
     startlength = sum(length.(w))
@@ -19,7 +20,7 @@ function whitehead_reduce(w::Vector{Word{T}}, X::Basis{T}; automorphisms=Whitehe
             return v, σ, true
         end
     end
-    return deepcopy(w), nothing, false
+    return cyclically_reduce!(deepcopy(w), alphabet(X)), nothing, false
 end
 
 @doc """
@@ -50,17 +51,18 @@ length will be found.
 list of minimal length (under autormophisms).
 """
 function minimize!(w::Vector{Word{T}}, X::Basis{T}; automorphisms=WhiteheadAutomorphisms(X)) where {T}
-    has_been_reduced = false
+    has_been_reduced_once = false
     Σ = Vector{FreeGroupAutomorphism{T}}()
     while true
         w, σ, has_been_reduced = whitehead_reduce(w, X, automorphisms=automorphisms)
         if has_been_reduced
+            has_been_reduced_once = true
             push!(Σ, σ)
         else
             break
         end
     end
-    return w, Σ, has_been_shortened
+    return w, reverse(Σ), has_been_reduced_once
 end
 
 @doc """
@@ -257,20 +259,6 @@ function connect_depthfirst(G::AbstractAutomorphismGraph{T}, s::Word{T}, t::Word
     return connect_depthfirst(G, [s], [t])
 end
 
-@doc """
-    compose(τ::Vector{FreeGroupAutomorphism})
-
-Compose the list of automorphisms returned by connect_depthfirst or minimize into a single
-automorphism. The resulting images might exhibit exponential length.
-"""
-function compose(τ::Vector{FreeGroupAutomorphism{T}}) where {T}
-    if isempty(τ) 
-        return FreeGroupAutomorphism{T}()
-    else
-        return foldr(∘, τ)
-    end
-end
-
 @doc (@doc whitehead_naive(::Vector{Word{T}}, ::Vector{Word{T}}, ::Basis{T}) where {T})
 function whitehead_naive!(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis{T}) where {T}
     cyclically_reduce!(v, alphabet(X))
@@ -279,10 +267,10 @@ function whitehead_naive!(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis{T}) w
     v, σ₁, _ = minimize!(v, X, automorphisms=WhiteheadAutomorphisms(X))
     w, σ₂, _ = minimize!(w, X, automorphisms=WhiteheadAutomorphisms(X))
 
-    length.(v) ≠ length.(w) && return FreeGroupAutomorphism{T}[]
+    length.(v) ≠ length.(w) && return false, σ₁, σ₂, FreeGroupAutomorphism{T}[]
     G = AutomorphismGraph(X; wordlengths=length.(v), automorphisms=WhiteheadAutomorphisms(X))
     τ = connect_depthfirst(G, v, w)
-    return !isnothing(τ), σ₁, σ₂, τ
+    return !isempty(τ), σ₁, σ₂, τ
 end
 
 @doc (@doc whitehead_naive(::Vector{Word{T}}, ::Vector{Word{T}}, ::Basis{T}) where {T})
@@ -290,9 +278,7 @@ function whitehead_naive!(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
     return whitehead_naive!([v], [w], X)
 end
 
-@doc """
-
-"""
+@doc (@doc whitehead_nielsenfirst(::Vector{Word{T}}, ::Vector{Word{T}}, ::Basis{T}) where {T})
 function whitehead_nielsenfirst!(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis{T}) where {T}
     cyclically_reduce!(v, alphabet(X))
     cyclically_reduce!(w, alphabet(X))
@@ -302,19 +288,21 @@ function whitehead_nielsenfirst!(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basi
     w, σ₂₁, _  = minimize!(w, X, automorphisms=NielsenAutomorphisms(X))
     if length(w) ≠ length(v)
         w, σ₂₂, _  = minimize!(w, X, automorphisms=WhiteheadAutomorphisms(X))
+    else
+        σ₂₂ = FreeGroupAutomorphism{T}[]
     end
-
-    length.(v) ≠ length.(w) && return false, FreeGroupAutomorphism{T}[]
-
+    
     σ₁ = [σ₁₂; σ₁₁]
     σ₂ = [σ₂₂; σ₂₁]
+
+    length.(v) ≠ length.(w) && return false, σ₁, σ₂, FreeGroupAutomorphism{T}[]
 
     G₁ = AutomorphismGraph(X; wordlengths=length.(v), automorphisms=NielsenAutomorphisms(X))
     τ₁ = connect_depthfirst(G₁, v, w)
     if !isnothing(τ₁) return true, σ₁, σ₂, τ₁ end
     G₂ = AutomorphismGraph(X; wordlengths=length.(v), automorphisms=WhiteheadAutomorphisms(X))
     τ₂ = connect_depthfirst(G₂, v, w)
-    return !isnothing(τ₂), σ₁, σ₂, τ₂
+    return !isempty(τ₂), σ₁, σ₂, τ₂
 end
 
 @doc (@doc whitehead_nielsenfirst(::Vector{Word{T}}, ::Vector{Word{T}}, ::Basis{T}) where {T})
@@ -322,9 +310,7 @@ function whitehead_nielsenfirst!(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
     return whitehead_nielsenfirst!([v], [w], X)
 end
 
-@doc """
-
-"""
+@doc (@doc whitehead_nielsenonly(::Vector{Word{T}}, ::Vector{Word{T}}, ::Basis{T}) where {T})
 function whitehead_nielsenonly!(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis{T}) where {T}
     cyclically_reduce!(v, alphabet(X))
     cyclically_reduce!(w, alphabet(X))
@@ -336,9 +322,10 @@ function whitehead_nielsenonly!(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis
 
     G = AutomorphismGraph(X; wordlengths=length.(v), automorphisms=NielsenAutomorphisms(X))
     τ = connect_depthfirst(G, v, w)
-    return !isnothing(τ), σ₁, σ₂, τ
+    return !isempty(τ), σ₁, σ₂, τ
 end
 
+@doc (@doc whitehead_nielsenonly(::Vector{Word{T}}, ::Vector{Word{T}}, ::Basis{T}) where {T})
 function whitehead_nielsenonly!(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
     return whitehead_nielsenonly!([v], [w], X)
 end
@@ -354,26 +341,31 @@ the lengths of v and w respectively; τ maps one minimized word to the other.
 If no automorphism carrying v to w exists, then (false, σ₁, σ₂, nothing) is returned.
 Here again are v and w minimized by σ₁ & σ₂ respectively.
 
-This version of Whitehead's algorithm has exponential time & memory requirement, consider
+This version of Whitehead's algorithm has exponential time & memory requirements, consider
 using whitehead_nielsenfirst(v, w, X) instead.
 """
 function whitehead_naive(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis{T}) where {T}
     return whitehead_naive!(deepcopy(v), deepcopy(w), X)
 end
 
-@doc (@doc whitehead_naive(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis{T}))
+@doc (@doc whitehead_naive(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis{T}) where {T})
 function whitehead_naive(v::Word{T}, w::Word{T}, X::Basis{T}) where {T}
     return whitehead_naive!([deepcopy(v)], [deepcopy(w)], X)
 end
 
 @doc """
-    whitehead_nielsenfirst(v::Word, w::Word, X::Basis)
+    whitehead_nielsenfirst(v, w, X::Basis)
 
-Attempt to find an automorphism of the free group with basis X, which maps
-the word v to w. The minimization strategy uses Nielsen automorphisms first
-and only then uses the Whitehead autormophisms.
-Return a list of these automorphisms such that their composition τ takes v to w,
-or nothing if no such τ exists.
+Decide, if there is an automorphism carrying v to w. If such an automorphism exists,
+return (true, σ₁, σ₂, τ) such that τ(σ₁(v)) = σ₂(w). The automorphisms σ₁ & σ₂ minimize
+the lengths of v and w respectively; τ maps one minimized word to the other.
+If no automorphism carrying v to w exists, then (false, σ₁, σ₂, nothing) is returned.
+Here again are v and w minimized by σ₁ & σ₂ respectively.
+
+This version of Whitehead's algorithm uses the Nielsen-first heuristic. In most cases
+Nielsen automorphisms are sufficient, so these are tried first. In the worst-case however,
+it is still necessary to use Whitehead automorphisms. Hence this version also has
+exponential time and memory requirements
 """
 function whitehead_nielsenfirst(v::Vector{Word{T}}, w::Vector{Word{T}}, X::Basis{T}) where {T}
     return whitehead_nielsenfirst!(deepcopy(v), deepcopy(w), X)
